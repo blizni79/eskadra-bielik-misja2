@@ -63,7 +63,7 @@ _print_ok()   { echo "  [OK]  $1"; }
 _print_fail() { echo "  [!!]  $1"; }
 _print_skip() { echo "  [--]  $1"; }
 
-_CHECKPOINT_TRACKING_TOPIC="projects/CF_PROJECT_CHANGE/topics/checkpoint-events"
+_CHECKPOINT_DASHBOARD_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/dashboard.json"
 
 _checkpoint_publish() {
     local checkpoint_num="$1"
@@ -84,8 +84,17 @@ _checkpoint_publish() {
         '{"checkpoint_num":%d,"account":"%s","project_id":"%s","encrypted_payload":"%s"}' \
         "$checkpoint_num" "$account" "$project_id" "$blob")
 
+    # Tryb post-warsztat: brak pliku lub "disabled" → cicho pomiń publikację.
+    local tracking_project=""
+    if [ -f "$_CHECKPOINT_DASHBOARD_FILE" ]; then
+        tracking_project=$(awk -F'"' '/"tracking_project"/ {print $4}' "$_CHECKPOINT_DASHBOARD_FILE")
+    fi
+    if [ -z "$tracking_project" ] || [ "$tracking_project" = "disabled" ]; then
+        return 0
+    fi
+
     # Publikuj — fail-silent: błąd nie blokuje uczestnika
-    gcloud pubsub topics publish "$_CHECKPOINT_TRACKING_TOPIC" \
+    gcloud pubsub topics publish "projects/${tracking_project}/topics/checkpoint-events" \
         --message="$message" \
         --quiet 2>/dev/null || true
 }

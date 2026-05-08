@@ -236,14 +236,7 @@ Przykładowy kod źródłowy zawarty w tym repozytorium pozwala w szczególnośc
 > [!TIP]
 >Cloud Shell posiada wbudowany edytor graficzny — przydatny do przeglądania i edycji plików bez znajomości edytorów terminalowych. Na potrzeby tego warsztatu nie jest wymagany, jednak możesz go uruchomić w dowolnym momencie komendą `cloudshell workspace .` lub klikając przycisk **Open Editor** w górnym pasku Cloud Shell. Więcej informacji: [Cloud Shell Editor](https://docs.cloud.google.com/shell/docs/editor-overview)
 
-6. 🛑 **STOP — wstaw tutaj nazwę otrzymaną od prowadzącego.** Jest to oddzielna wartość (`CF_NAZWA_PROJEKTU`) — **nie** jest to nazwa ani ID Twojego własnego projektu Google Cloud:
-   ```bash
-   ./checkpoints/cf_project_change.sh {CF_NAZWA_PROJEKTU}
-   ```
-
-> ⚠️ Bez tego kroku certyfikat z wynikami nie trafi do prowadzącego. Zastąp `{CF_NAZWA_PROJEKTU}` dokładnie tą wartością, którą podał prowadzący — **nie wpisuj tu nazwy ani ID swojego projektu Google Cloud**. Skrypt obsługuje oba formaty: `{bielik-test}` i `bielik-test`.
-
-7. Zalicz krok i zdobądź **+5 punktów** — uruchom skrypt weryfikacyjny:
+6. Zalicz krok i zdobądź **+5 punktów** — uruchom skrypt weryfikacyjny:
    ```bash
    ./checkpoints/checkpoint_1.sh
    ```
