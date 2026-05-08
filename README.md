@@ -641,7 +641,7 @@ Po zakończeniu skrypt wypisze podsumowanie wykonanych kroków.
  Podsumowanie:
 {
   "model": "embeddinggemma",
-  "wymiary": 738,
+  "wymiary": 768,
   "czas_ms": [dane dynamiczne, np. 412],
   "pierwsze_5_wartosci": [
     [dane dynamiczne — np. 0.0234],
@@ -656,7 +656,7 @@ Po zakończeniu skrypt wypisze podsumowanie wykonanych kroków.
  Pełny wektor (pierwsze 20 wartości):
 ======================================================
 [
-  [dane dynamiczne — 738 liczb zmiennoprzecinkowych reprezentujących
+  [dane dynamiczne — 768 liczb zmiennoprzecinkowych reprezentujących
    znaczenie tekstu w przestrzeni semantycznej modelu EmbeddingGemma]
 ]
 
@@ -667,7 +667,7 @@ Po zakończeniu skrypt wypisze podsumowanie wykonanych kroków.
 ======================================================
 ```
 
-> 💡 **Kluczowy fakt:** wymiar wektora **738** jest stały dla modelu `embeddinggemma` — niezależnie od długości tekstu wejściowego odpowiedź zawsze ma dokładnie 738 liczb. Wartości liczbowe będą różne u każdego uczestnika tylko jeśli model zostanie wznowiony po zimnym starcie; dla identycznego tekstu i modelu są deterministyczne.
+> 💡 **Kluczowy fakt:** wymiar wektora **768** jest stały dla modelu `embeddinggemma` — niezależnie od długości tekstu wejściowego odpowiedź zawsze ma dokładnie 768 liczb. Wartości liczbowe będą różne u każdego uczestnika tylko jeśli model zostanie wznowiony po zimnym starcie; dla identycznego tekstu i modelu są deterministyczne.
 
 </details>
 
@@ -1007,11 +1007,11 @@ Aplikacja Orchestration to serce całego rozwiązania RAG — spina model embedd
    > Kolumna `embedding_dimensions` pokaże ile wymiarów ma wygenerowany wektor.
 
    > [!NOTE]
-   > Wynik to **738** — stała właściwość modelu `embeddinggemma`, zakodowana w jego wagach. Aplikacja tej liczby nie konfiguruje ani nie skraca — po prostu przekazuje tablicę zwróconą przez model do BigQuery. Każdy model embeddingowy ma inny wymiar (np. modele BERT-base: 768, modele large: 1024, niektóre nowe: 2048+). Wyższy wymiar nie zawsze oznacza lepszą jakość — liczy się architektura i dane treningowe modelu.
+   > Wynik to **768** — stała właściwość modelu `embeddinggemma`, zakodowana w jego wagach. Aplikacja tej liczby nie konfiguruje ani nie skraca — po prostu przekazuje tablicę zwróconą przez model do BigQuery. Każdy model embeddingowy ma inny wymiar (np. modele MiniLM: 384, modele large: 1024, niektóre nowe: 2048+). Wyższy wymiar nie zawsze oznacza lepszą jakość — liczy się architektura i dane treningowe modelu.
 
    > **🧌 Dla Smerfa Marudy — czy da się zmienić wymiar wektora?**
    >
-   > Tak, ale wymaga zamiany modelu embeddingowego na inny (np. `nomic-embed-text` → 768 wymiarów). BigQuery **nie wymaga** zmiany schematu tabeli — `FLOAT64 REPEATED` przyjmuje tablicę dowolnej długości — ale wszystkie rekordy w tabeli muszą mieć wektory tego samego wymiaru, bo inaczej `VECTOR_SEARCH` porównuje jabłka z pomarańczami. Zmiana modelu wymaga więc: zamiany modelu w `embedding_model/`, wyczyszczenia tabeli BigQuery i ponownego przejścia przez kroki 4–6.
+   > Tak, ale wymaga zamiany modelu embeddingowego na inny (np. `mxbai-embed-large` → 1024 wymiarów). BigQuery **nie wymaga** zmiany schematu tabeli — `FLOAT64 REPEATED` przyjmuje tablicę dowolnej długości — ale wszystkie rekordy w tabeli muszą mieć wektory tego samego wymiaru, bo inaczej `VECTOR_SEARCH` porównuje jabłka z pomarańczami. Zmiana modelu wymaga więc: zamiany modelu w `embedding_model/`, wyczyszczenia tabeli BigQuery i ponownego przejścia przez kroki 4–6.
 
 4. Wykonaj testowe zapytania RAG
 
@@ -1176,7 +1176,7 @@ Aplikacja Orchestration to serce całego rozwiązania RAG — spina model embedd
 
 [6.2] Wektory embedding w tabeli:
   [OK]  Wiersze z wektorem: 19 / 19
-  [OK]  Wymiarowość wektora: 738
+  [OK]  Wymiarowość wektora: 768
 
 [6.3] Endpoint POST /ask (test dostępności — max 60s):
   [OK]  Endpoint /ask odpowiada (HTTP 200)
