@@ -311,8 +311,10 @@ Przykładowy kod źródłowy zawarty w tym repozytorium pozwala w szczególnośc
    >
    > Pierwsze uruchomienie wymaga wybrania opcji **1. Trust folder (eskadra-bielik-misja2)**.
 
+   > ⚠️ **Ważne dla Gemini CLI:** prompty z `@plik` w tym warsztacie służą **analizie/edycji kodu** — nigdy do uruchamiania pliku. Każdy prompt poniżej zawiera końcową dyrektywę „nie uruchamiaj" dla Gemini — **nie usuwaj jej z promptów**, bo Gemini bywa nadgorliwy i potrafi sam wykonać skrypt w wewnętrznym sandboxie.
+
    > ```bash
-   > gemini "Co robi ten skrypt @setup_env.sh? Wyjaśnij każdą zmienną środowiskową."
+   > gemini "Co robi ten skrypt @setup_env.sh? Wyjaśnij każdą zmienną środowiskową. Nie uruchamiaj pliku ani w sandboxie — pracuj wyłącznie na jego kodzie źródłowym."
    > ```
    > Porównaj swoją odpowiedź z [opisem referencyjnym](skrypty/script_descriptions.md#skrypt-setupenvsh) — Twoja może brzmieć zupełnie inaczej i to jest jak najbardziej w porządku. Modele językowe są niedeterministyczne: za każdym razem generują odpowiedź od nowa, dlatego dwie osoby zadające to samo pytanie mogą otrzymać różne, ale równie poprawne wyjaśnienia.
 
@@ -448,7 +450,7 @@ Po zakończeniu skrypt wypisze podsumowanie wykonanych kroków.
 
    > **🤖 Zadanie dla Gemini CLI** — zapytaj AI o Cloud Storage i rozmiary modeli:
    > ```bash
-   > gemini "Co robi skrypt @ollama_models/setup_models.sh? Czym jest Cloud Storage bucket i dlaczego modele językowe LLM ważą kilka gigabajtów, a nie kilka megabajtów jak zwykłe programy?"
+   > gemini "Co robi skrypt @ollama_models/setup_models.sh? Czym jest Cloud Storage bucket i dlaczego modele językowe LLM ważą kilka gigabajtów, a nie kilka megabajtów jak zwykłe programy? Nie uruchamiaj pliku ani w sandboxie — pracuj wyłącznie na jego kodzie źródłowym."
    > ```
    > Porównaj swoją odpowiedź z [opisem referencyjnym](skrypty/script_descriptions.md#skrypt-ollama_modelssetup_modelssh).
 
@@ -464,7 +466,7 @@ Po zakończeniu skrypt wypisze podsumowanie wykonanych kroków.
 
    > **🤖 Zadanie dla Gemini CLI** — zapytaj AI o konteneryzację modeli AI:
    > ```bash
-   > gemini "Co robi skrypt @ollama_docker_image/setup_ollama_image.sh? Czym jest obraz Docker, dlaczego buduje się własny obraz zamiast użyć gotowego i do czego służy Artifact Registry?"
+   > gemini "Co robi skrypt @ollama_docker_image/setup_ollama_image.sh? Czym jest obraz Docker, dlaczego buduje się własny obraz zamiast użyć gotowego i do czego służy Artifact Registry? Nie uruchamiaj pliku ani w sandboxie — pracuj wyłącznie na jego kodzie źródłowym."
    > ```
    > Porównaj swoją odpowiedź z [opisem referencyjnym](skrypty/script_descriptions.md#skrypt-ollama_docker_imagesetup_ollama_imagesh).
 
@@ -481,7 +483,7 @@ Po zakończeniu skrypt wypisze podsumowanie wykonanych kroków.
 
    > **🤖 Zadanie dla Gemini CLI** — zapytaj AI o GPU w chmurze:
    > ```bash
-   > gemini "Co robi skrypt @llm/cloud_run.sh? Dlaczego model Bielik wymaga GPU NVIDIA L4 — czym fundamentalnie różni się przetwarzanie na GPU od CPU w kontekście modeli językowych?"
+   > gemini "Co robi skrypt @llm/cloud_run.sh? Dlaczego model Bielik wymaga GPU NVIDIA L4 — czym fundamentalnie różni się przetwarzanie na GPU od CPU w kontekście modeli językowych? Nie uruchamiaj pliku ani w sandboxie — pracuj wyłącznie na jego kodzie źródłowym."
    > ```
    > Porównaj swoją odpowiedź z [opisem referencyjnym](skrypty/script_descriptions.md#skrypt-llmcloud_runsh).
 
@@ -518,7 +520,7 @@ Po zakończeniu skrypt wypisze podsumowanie wykonanych kroków.
 
    > **🤖 Zadanie dla Gemini CLI** — zapytaj AI o autoryzację JWT w API:
    > ```bash
-   > gemini "Co robi skrypt @llm/llm_test1.sh? Wyjaśnij jak działa token JWT w Google Cloud — skąd pochodzi, jak długo jest ważny i co się stanie gdy wyślę zapytanie bez nagłówka Authorization?"
+   > gemini "Co robi skrypt @llm/llm_test1.sh? Wyjaśnij jak działa token JWT w Google Cloud — skąd pochodzi, jak długo jest ważny i co się stanie gdy wyślę zapytanie bez nagłówka Authorization? Nie uruchamiaj pliku ani w sandboxie — pracuj wyłącznie na jego kodzie źródłowym."
    > ```
    > Porównaj swoją odpowiedź z [opisem referencyjnym](skrypty/script_descriptions.md#skrypt-llmllm_test1sh).
 
@@ -585,7 +587,7 @@ Po zakończeniu skrypt wypisze podsumowanie wykonanych kroków.
 
    > **🤖 Zadanie dla Gemini CLI** — zapytaj AI o różnicę między modelem generatywnym a embeddingowym:
    > ```bash
-   > gemini "Co robi skrypt @embedding_model/cloud_run.sh? Dlaczego model embeddingowy działa bez GPU, a Bielik go potrzebuje — co fundamentalnie różni generowanie tekstu od generowania wektora?"
+   > gemini "Co robi skrypt @embedding_model/cloud_run.sh? Dlaczego model embeddingowy działa bez GPU, a Bielik go potrzebuje — co fundamentalnie różni generowanie tekstu od generowania wektora? Nie uruchamiaj pliku ani w sandboxie — pracuj wyłącznie na jego kodzie źródłowym."
    > ```
    > Porównaj swoją odpowiedź z [opisem referencyjnym](skrypty/script_descriptions.md#skrypt-embedding_modelcloud_runsh).
 
@@ -613,7 +615,7 @@ Po zakończeniu skrypt wypisze podsumowanie wykonanych kroków.
 
    > **🤖 Zadanie dla Gemini CLI** — zapytaj AI o przestrzeń semantyczną:
    > ```bash
-   > gemini "Co robi skrypt @embedding_model/embedding_test1.sh? Wyjaśnij czym jest przestrzeń wektorowa — jak 2048 liczb może wyrażać 'znaczenie' tekstu i dlaczego zdania o podobnym sensie dają wektory bliskie sobie geometrycznie?"
+   > gemini "Co robi skrypt @embedding_model/embedding_test1.sh? Wyjaśnij czym jest przestrzeń wektorowa — jak 2048 liczb może wyrażać 'znaczenie' tekstu i dlaczego zdania o podobnym sensie dają wektory bliskie sobie geometrycznie? Nie uruchamiaj pliku ani w sandboxie — pracuj wyłącznie na jego kodzie źródłowym."
    > ```
    > Porównaj swoją odpowiedź z [opisem referencyjnym](skrypty/script_descriptions.md#skrypt-embedding_modelembedding_test1sh).
 
@@ -773,7 +775,7 @@ Projekt wykorzystuje [BigQuery](https://cloud.google.com/bigquery?hl=en) z funkc
 
    > **🤖 Zadanie dla Gemini CLI** — zapytaj AI o projektowanie schematu dla Vector Search:
    > ```bash
-   > gemini "Co robi skrypt @vector_store/init_db.py? Dlaczego kolumna embedding ma typ FLOAT64 REPEATED a nie JSON ani STRING — jak BigQuery Vector Search korzysta z tego konkretnego typu do wyszukiwania podobnych wektorów?"
+   > gemini "Co robi skrypt @vector_store/init_db.py? Dlaczego kolumna embedding ma typ FLOAT64 REPEATED a nie JSON ani STRING — jak BigQuery Vector Search korzysta z tego konkretnego typu do wyszukiwania podobnych wektorów? Nie uruchamiaj pliku ani w sandboxie — pracuj wyłącznie na jego kodzie źródłowym."
    > ```
    > Porównaj swoją odpowiedź z [opisem referencyjnym](skrypty/script_descriptions.md#skrypt-vector_storeinit_dbpy).
 
@@ -847,7 +849,7 @@ Aplikacja Orchestration to serce całego rozwiązania RAG — spina model embedd
 
    > **🤖 Zadanie dla Gemini CLI** — zapytaj AI o architekturę systemu RAG:
    > ```bash
-   > gemini "Co robi plik @orchestration/main.py? Policz ile linii liczy ten plik i wyjaśnij jak FastAPI pozwala zbudować pełny system RAG — embedding, Vector Search, LLM — w tak zwartym kodzie."
+   > gemini "Co robi plik @orchestration/main.py? Policz ile linii liczy ten plik i wyjaśnij jak FastAPI pozwala zbudować pełny system RAG — embedding, Vector Search, LLM — w tak zwartym kodzie. Nie uruchamiaj pliku ani w sandboxie — pracuj wyłącznie na jego kodzie źródłowym."
    > ```
    > Porównaj swoją odpowiedź z [opisem referencyjnym](skrypty/script_descriptions.md#plik-orchestrationmainpy).
 
@@ -858,7 +860,7 @@ Aplikacja Orchestration to serce całego rozwiązania RAG — spina model embedd
 
    > **🤖 Zadanie dla Gemini CLI** — zapytaj AI o dobre praktyki konfiguracji aplikacji:
    > ```bash
-   > gemini "Co robi skrypt @orchestration/cloud_run.sh? Wyjaśnij dlaczego adresy URL modeli są przekazywane przez zmienne środowiskowe a nie wpisane na stałe w kodzie — czym jest zasada twelve-factor app?"
+   > gemini "Co robi skrypt @orchestration/cloud_run.sh? Wyjaśnij dlaczego adresy URL modeli są przekazywane przez zmienne środowiskowe a nie wpisane na stałe w kodzie — czym jest zasada twelve-factor app? Nie uruchamiaj pliku ani w sandboxie — pracuj wyłącznie na jego kodzie źródłowym."
    > ```
    > Porównaj swoją odpowiedź z [opisem referencyjnym](skrypty/script_descriptions.md#skrypt-orchestrationcloud_runsh).
 
