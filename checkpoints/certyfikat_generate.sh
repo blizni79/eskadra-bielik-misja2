@@ -4,10 +4,12 @@
 set -euo pipefail
 source "$(dirname "$0")/_encrypt.sh"
 
+printf "%s" "$_C_CYAN"
 _print_separator
 echo " CERTYFIKAT UKOŃCZENIA — Eskadra Bielik Misja 2"
 echo " RAG w oparciu o model Bielik i Google Cloud"
 _print_separator
+printf "%s" "$_C_RESET"
 
 PROJECT_ID=$(gcloud config get-value project 2>/dev/null | tr -d '[:space:]')
 ACCOUNT=$(gcloud config get-value account 2>/dev/null | tr -d '[:space:]')
@@ -101,6 +103,16 @@ $(echo -e "$CHECKPOINT_HASHES")
 verification=PASSED_ALL_8_CHECKPOINTS"
 
 echo ""
+printf "%s%s\n" "$_C_BOLD" "$_C_YELLOW"
+cat <<'GRATULACJE'
+ ██████╗ ██████╗  █████╗ ████████╗██╗   ██╗██╗      █████╗  ██████╗     ██╗███████╗
+██╔════╝ ██╔══██╗██╔══██╗╚══██╔══╝██║   ██║██║     ██╔══██╗██╔════╝     ██║██╔════╝
+██║  ███╗██████╔╝███████║   ██║   ██║   ██║██║     ███████║██║          ██║█████╗
+██║   ██║██╔══██╗██╔══██║   ██║   ██║   ██║██║     ██╔══██║██║     ██   ██║██╔══╝
+╚██████╔╝██║  ██║██║  ██║   ██║   ╚██████╔╝███████╗██║  ██║╚██████╗╚█████╔╝███████╗
+ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚════╝ ╚══════╝
+GRATULACJE
+printf "%s\n" "$_C_RESET"
 _print_separator
 echo " Generowanie zaszyfrowanego certyfikatu..."
 
@@ -123,10 +135,12 @@ EARNED=$(_get_earned_points)
 BAR=$(_draw_progress_bar "$EARNED" "$_TOTAL_POINTS")
 
 echo ""
+printf "%s%s" "$_C_BOLD" "$_C_MAGENTA"
 echo "======================================================"
-echo "  *** WARSZTAT ESKADRA BIELIK - MISJA 2 ***"
-echo "  *** UKONCZONY POMYSLNIE! ***"
+echo "      WARSZTAT ESKADRA BIELIK - MISJA 2"
+echo "          UKONCZONY POMYSLNIE!"
 echo "======================================================"
+printf "%s\n" "$_C_RESET"
 echo ""
 echo "  Uczestnik : $ACCOUNT"
 echo "  Projekt   : $PROJECT_ID"
@@ -148,3 +162,40 @@ echo "  cloudshell dl cert_artifacts/checkpoint_certyfikat.enc"
 echo ""
 echo "  Nastepnie wyslij plik prowadzacemu."
 echo "======================================================"
+
+echo ""
+printf "%s" "$_C_CYAN"
+cat <<'ROCKET'
+       *  .  *      *   .    *  .  *      *    *
+   .       .             .       *      .        *
+              .               *  .         .
+       .  *           *      *      *       .     *
+                     ____            *
+                    /|  |\
+                   / |EB| \             .   *
+                  /  |  |  \      *
+                 /___|__|___\           *  .
+                  |        |          .
+                  | MISJA  |     *
+                  |   2    |   .
+                  |        |        *
+                  |________|     .
+                  /|      |\
+                 / |      | \
+                /  |      |  \
+               /___|______|___\
+                  /|      |\
+                 / |      | \
+                  ▲▲▲▲▲▲▲▲▲
+                   ▲▲▲▲▲▲
+                    ▲▲▲▲
+                     ▲▲
+                      ▲
+ROCKET
+printf "%s\n" "$_C_RESET"
+echo ""
+printf "%s%s" "$_C_BOLD" "$_C_MAGENTA"
+echo "         ESKADRA BIELIK - MISJA 2 - UKONCZONA!"
+echo "       Suwerenne AI po polsku - Bielik + Google Cloud"
+printf "%s\n" "$_C_RESET"
+echo ""

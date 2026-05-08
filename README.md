@@ -279,6 +279,7 @@ Przykładowy kod źródłowy zawarty w tym repozytorium pozwala w szczególnośc
 ======================================================
   Projekt skonfigurowany! Infrastruktura czeka na uruchomienie.
   Artefakt           : cert_artifacts/checkpoint_1.enc
+  Dashboard          : wynik wyslany do prowadzacego
 ======================================================
 ======================================================
 ```
@@ -422,6 +423,7 @@ Przykładowy kod źródłowy zawarty w tym repozytorium pozwala w szczególnośc
 ======================================================
   Uslugi aktywne, uprawnienia ustawione. Czas na modele!
   Artefakt           : cert_artifacts/checkpoint_2.enc
+  Dashboard          : wynik wyslany do prowadzacego
 ======================================================
 ======================================================
 ```
@@ -729,6 +731,7 @@ Po zakończeniu skrypt wypisze podsumowanie wykonanych kroków.
 ======================================================
   Oba modele dzialaja w chmurze. Najtrudniejszy krok za Toba!
   Artefakt           : cert_artifacts/checkpoint_3.enc
+  Dashboard          : wynik wyslany do prowadzacego
 ======================================================
 ======================================================
 ```
@@ -824,6 +827,7 @@ Projekt wykorzystuje [BigQuery](https://cloud.google.com/bigquery?hl=en) z funkc
 ======================================================
   Baza wektorowa gotowa. Czas polaczyc wszystko w jedno API.
   Artefakt           : cert_artifacts/checkpoint_4.enc
+  Dashboard          : wynik wyslany do prowadzacego
 ======================================================
 ======================================================
 ```
@@ -932,6 +936,7 @@ Aplikacja Orchestration to serce całego rozwiązania RAG — spina model embedd
 ======================================================
   System RAG zlozony w calosci. Czas na prawdziwe testy!
   Artefakt           : cert_artifacts/checkpoint_5.enc
+  Dashboard          : wynik wyslany do prowadzacego
 ======================================================
 ======================================================
 ```
@@ -1194,6 +1199,7 @@ Aplikacja Orchestration to serce całego rozwiązania RAG — spina model embedd
 ======================================================
   Wyszukiwanie semantyczne dziala. Jeden krok do mety!
   Artefakt           : cert_artifacts/checkpoint_6.enc
+  Dashboard          : wynik wyslany do prowadzacego
 ======================================================
 ======================================================
 ```
@@ -1279,6 +1285,7 @@ Zalicz krok i zdobądź **+5 punktów** — uruchom skrypt weryfikacyjny, który
 ======================================================
   Architektura przejrzana i zrozumiana. Ostatni krok!
   Artefakt           : cert_artifacts/checkpoint_7.enc
+  Dashboard          : wynik wyslany do prowadzacego
 ======================================================
 ======================================================
 ```
@@ -1369,7 +1376,21 @@ Aby otworzyć interfejs graficzny testowej aplikacji z poziomu Twojego projektu:
 ======================================================
   WARSZTAT UKONCZONY! Wygeneruj certyfikat i pochwal sie wynikiem.
   Artefakt           : cert_artifacts/checkpoint_8.enc
+  Dashboard          : wynik wyslany do prowadzacego
 ======================================================
+======================================================
+
+======================================================
+  OSTATNI KROK — CERTYFIKAT UKONCZENIA
+======================================================
+
+  Przygotuj telefon i nagraj generowanie certyfikatu —
+  to moment, ktory chcesz miec na pamiatke z warsztatu!
+
+  Gdy bedziesz gotowy z kamera, uruchom:
+
+    ./checkpoints/certyfikat_generate.sh
+
 ======================================================
 ```
 
@@ -1429,6 +1450,15 @@ Gratulacje — warsztat dobiegł końca! Wygeneruj zaszyfrowany certyfikat zawie
 > [!IMPORTANT]
 > Przed wygenerowaniem certyfikatu upewnij się, że wszystkie 8 checkpointów zostało wykonanych (pliki `cert_artifacts/checkpoint_N.enc` muszą istnieć). Skrypt sam to weryfikuje i zgłosi brakujące kroki.
 
+> [!TIP]
+> 📱 **Przygotuj telefon i nagraj — będą dwie niespodzianki!**
+>
+> **Niespodzianka 1:** uruchomienie certyfikatu wygeneruje duży napis GRATULACJE, kosmiczną rakietę i pełne podsumowanie 75 punktów. Włącz kamerę zanim wciśniesz Enter.
+>
+> **Niespodzianka 2:** wejdź na dashboard prowadzącego, wybierz opcję **9. Mój postęp** i podaj swój e-mail — zobaczysz spersonalizowane podsumowanie swoich checkpointów. Wcześniej **wyłącz auto-refresh** — wciśnij klawisz `0` na dashboardzie (na górze przełączy się z `AUTO` na `MANUAL`), żeby ekran nie odświeżał się podczas nagrania.
+>
+> Jak Ci się podoba efekt wieńczący Twój trud? Możesz krzyczeć na głos **WOW** :)
+
 ```bash
 ./checkpoints/certyfikat_generate.sh
 ```
@@ -1467,12 +1497,19 @@ Sumy kontrolne artefaktów:
   checkpoint_7: [dane dynamiczne]...
   checkpoint_8: [dane dynamiczne]...
 
+ ██████╗ ██████╗  █████╗ ████████╗██╗   ██╗██╗      █████╗  ██████╗     ██╗███████╗
+██╔════╝ ██╔══██╗██╔══██╗╚══██╔══╝██║   ██║██║     ██╔══██╗██╔════╝     ██║██╔════╝
+██║  ███╗██████╔╝███████║   ██║   ██║   ██║██║     ███████║██║          ██║█████╗
+██║   ██║██╔══██╗██╔══██║   ██║   ██║   ██║██║     ██╔══██║██║     ██   ██║██╔══╝
+╚██████╔╝██║  ██║██║  ██║   ██║   ╚██████╔╝███████╗██║  ██║╚██████╗╚█████╔╝███████╗
+ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚════╝ ╚══════╝
+
 ======================================================
  Generowanie zaszyfrowanego certyfikatu...
 
 ======================================================
-  *** WARSZTAT ESKADRA BIELIK - MISJA 2 ***
-  *** UKONCZONY POMYSLNIE! ***
+      WARSZTAT ESKADRA BIELIK - MISJA 2
+          UKONCZONY POMYSLNIE!
 ======================================================
 
   Uczestnik : [dane dynamiczne, np. jan.kowalski@gmail.com]
@@ -1498,6 +1535,36 @@ Sumy kontrolne artefaktów:
 
   Nastepnie wyslij plik prowadzacemu.
 ======================================================
+
+       *  .  *      *   .    *  .  *      *    *
+   .       .             .       *      .        *
+              .               *  .         .
+       .  *           *      *      *       .     *
+                     ____            *
+                    /|  |\
+                   / |EB| \             .   *
+                  /  |  |  \      *
+                 /___|__|___\           *  .
+                  |        |          .
+                  | MISJA  |     *
+                  |   2    |   .
+                  |        |        *
+                  |________|     .
+                  /|      |\
+                 / |      | \
+                /  |      |  \
+               /___|______|___\
+                  /|      |\
+                 / |      | \
+                  ▲▲▲▲▲▲▲▲▲
+                   ▲▲▲▲▲▲
+                    ▲▲▲▲
+                     ▲▲
+                      ▲
+
+         ESKADRA BIELIK - MISJA 2 - UKONCZONA!
+       Suwerenne AI po polsku - Bielik + Google Cloud
+
 ```
 
 </details>

@@ -65,11 +65,25 @@ _print_skip() { echo "  [--]  $1"; }
 
 _CHECKPOINT_DASHBOARD_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/dashboard.json"
 
+# Status ostatniej publikacji do dashboardu — ustawiany przez _checkpoint_publish,
+# czytany przez _checkpoint_save do wyświetlenia odpowiedniego komunikatu.
+_PUBLISH_STATUS="DISABLED"
+
+# Kolory ANSI — używane przez skrypty finalne (cert + checkpoint_8 success).
+_C_RESET=$'\033[0m'
+_C_BOLD=$'\033[1m'
+_C_GREEN=$'\033[0;32m'
+_C_YELLOW=$'\033[1;33m'
+_C_CYAN=$'\033[0;36m'
+_C_MAGENTA=$'\033[0;35m'
+
 _checkpoint_publish() {
     local checkpoint_num="$1"
     local project_id="$2"
     local account="$3"
     local enc_file="$4"
+
+    _PUBLISH_STATUS="DISABLED"
 
     # Wyciągnij base64 blob spomiędzy znaczników (usuń znaki nowej linii)
     local blob
@@ -93,10 +107,13 @@ _checkpoint_publish() {
         return 0
     fi
 
-    # Publikuj — fail-silent: błąd nie blokuje uczestnika
-    gcloud pubsub topics publish "projects/${tracking_project}/topics/checkpoint-events" \
-        --message="$message" \
-        --quiet 2>/dev/null || true
+    # Publikuj — fail-silent: błąd nie blokuje uczestnika, ale rejestrujemy status do wyświetlenia.
+    if gcloud pubsub topics publish "projects/${tracking_project}/topics/checkpoint-events" \
+        --message="$message" --quiet >/dev/null 2>&1; then
+        _PUBLISH_STATUS="SENT"
+    else
+        _PUBLISH_STATUS="FAILED"
+    fi
 }
 
 _checkpoint_save() {
@@ -154,6 +171,9 @@ ARTIFACT
     local label="${_CHECKPOINT_LABELS[$checkpoint_num]}"
     local msg="${_CHECKPOINT_MESSAGES[$checkpoint_num]}"
 
+    # Publikuj NAJPIERW — status jest potrzebny do wyświetlenia w bloku poniżej.
+    _checkpoint_publish "$checkpoint_num" "$project_id" "$account" "$output_file"
+
     echo ""
     _print_separator
     printf "  CHECKPOINT %s ZALICZONY!\n" "$checkpoint_num"
@@ -165,10 +185,18 @@ ARTIFACT
     _print_separator
     printf "  %s\n" "$msg"
     printf "  Artefakt           : cert_artifacts/checkpoint_%s.enc\n" "$checkpoint_num"
+    case "$_PUBLISH_STATUS" in
+        SENT)
+            printf "  Dashboard          : wynik wyslany do prowadzacego\n"
+            ;;
+        DISABLED)
+            printf "  Tryb samodzielny   : postepy widzisz w punktach powyzej\n"
+            ;;
+        FAILED)
+            printf "  Dashboard          : niedostepny (nie blokuje warsztatu)\n"
+            ;;
+    esac
     _print_separator
-
-    # Wysłanie do systemu śledzenia postępu (fail-silent — nie blokuje uczestnika)
-    _checkpoint_publish "$checkpoint_num" "$project_id" "$account" "$output_file"
 
     return 0
 }

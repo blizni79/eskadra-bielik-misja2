@@ -140,3 +140,19 @@ verification=PASSED"
 echo " WYNIK: Web UI dostępny, oba tryby (RAG i bez RAG) aktywne."
 _checkpoint_save "8" "$CONTENT"
 _print_separator
+
+echo ""
+printf "%s%s" "$_C_BOLD" "$_C_YELLOW"
+_print_separator
+echo "  OSTATNI KROK — CERTYFIKAT UKONCZENIA"
+_print_separator
+printf "%s" "$_C_RESET"
+echo ""
+echo "  Przygotuj telefon i nagraj generowanie certyfikatu —"
+echo "  to moment, ktory chcesz miec na pamiatke z warsztatu!"
+echo ""
+echo "  Gdy bedziesz gotowy z kamera, uruchom:"
+echo ""
+printf "    %s./checkpoints/certyfikat_generate.sh%s\n" "$_C_CYAN" "$_C_RESET"
+echo ""
+_print_separator
