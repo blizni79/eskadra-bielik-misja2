@@ -181,6 +181,9 @@ ENCRYPTED=$(echo "$CONTENT" | openssl enc -aes-256-cbc -pbkdf2 -iter 100000 \
 cat > "${CERT_DIR}/checkpoint_certyfikat.enc" <<ARTIFACT
 PROJECT_ID: ${PROJECT_ID}
 ACCOUNT: ${ACCOUNT}
+FIRST_NAME: ${FIRST_NAME}
+LAST_NAME: ${LAST_NAME}
+EMAIL: ${EMAIL}
 CHECKPOINT: certyfikat
 TIMESTAMP: ${CERT_TIMESTAMP}
 ---BEGIN ENCRYPTED---
