@@ -191,6 +191,33 @@ ${ENCRYPTED}
 ---END ENCRYPTED---
 ARTIFACT
 
+# --- Publikacja danych certyfikatu do prowadzacego (fail-silent) ---
+# Nie blokuje wygenerowania pliku lokalnie — w razie bledu uczestnik wysle .enc mailem.
+CERT_PUBLISH_STATUS="DISABLED"
+TRACKING_PROJECT=""
+if [ -f "$_CHECKPOINT_DASHBOARD_FILE" ]; then
+    TRACKING_PROJECT=$(awk -F'"' '/"tracking_project"/ {print $4}' "$_CHECKPOINT_DASHBOARD_FILE")
+fi
+if [ -n "$TRACKING_PROJECT" ] && [ "$TRACKING_PROJECT" != "disabled" ]; then
+    CERT_PUBLISH_STATUS="FAILED"
+    if CERT_MESSAGE=$(python3 -c '
+import json, sys
+print(json.dumps({
+    "message_type": "certificate_request",
+    "account":      sys.argv[1],
+    "project_id":   sys.argv[2],
+    "first_name":   sys.argv[3],
+    "last_name":    sys.argv[4],
+    "email":        sys.argv[5],
+}))
+' "$ACCOUNT" "$PROJECT_ID" "$FIRST_NAME" "$LAST_NAME" "$EMAIL" 2>/dev/null) \
+       && gcloud pubsub topics publish \
+            "projects/${TRACKING_PROJECT}/topics/checkpoint-events" \
+            --message="$CERT_MESSAGE" --quiet >/dev/null 2>&1; then
+        CERT_PUBLISH_STATUS="SENT"
+    fi
+fi
+
 EARNED=$(_get_earned_points)
 BAR=$(_draw_progress_bar "$EARNED" "$_TOTAL_POINTS")
 
@@ -205,6 +232,11 @@ echo ""
 echo "  Uczestnik : $ACCOUNT"
 echo "  Projekt   : $PROJECT_ID"
 echo "  Czas      : $CERT_TIMESTAMP"
+case "$CERT_PUBLISH_STATUS" in
+    SENT)     echo "  Dane certyfikatu: wyslane do prowadzacego" ;;
+    FAILED)   echo "  Dane certyfikatu: wysylka nieudana - dolacz plik .enc do maila" ;;
+    DISABLED) echo "  Dane certyfikatu: tryb offline - dolacz plik .enc do maila" ;;
+esac
 echo ""
 printf "  Wynik: %d / %d pkt\n" "$EARNED" "$_TOTAL_POINTS"
 printf "  [%s] 100%%\n" "$BAR"
