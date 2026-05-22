@@ -54,26 +54,82 @@ if [ "$ERRORS" -gt 0 ]; then
     exit 1
 fi
 
-# --- Weryfikacja końcowego stanu usług Cloud Run ---
-echo ""
-echo "Końcowy stan usług Cloud Run:"
-FINAL_SERVICES_INFO=""
-for SVC in bielik embedding-gemma orchestration-api; do
-    SVC_STATUS=$(gcloud run services describe "$SVC" \
-        --region "$REGION" \
-        --format="value(status.conditions[0].status)" 2>/dev/null || true)
-    SVC_URL=$(gcloud run services describe "$SVC" \
-        --region "$REGION" \
-        --format="value(status.url)" 2>/dev/null || true)
-    SVC_CREATED=$(gcloud run services describe "$SVC" \
-        --region "$REGION" \
-        --format="value(metadata.creationTimestamp)" 2>/dev/null || true)
-    if [ "$SVC_STATUS" = "True" ]; then
-        _print_ok "${SVC}: Ready — $SVC_URL"
-    else
-        _print_skip "${SVC}: ${SVC_STATUS:-BRAK}"
+# --- Pobranie danych uczestnika do certyfikatu ---
+_validate_email() {
+    local e="$1"
+    if echo "$e" | grep -q '[[:space:]]'; then
+        return 1
     fi
-    FINAL_SERVICES_INFO="${FINAL_SERVICES_INFO}${SVC}:status=${SVC_STATUS:-UNKNOWN};url=${SVC_URL:-UNKNOWN};created=${SVC_CREATED:-UNKNOWN}\n"
+    if ! echo "$e" | grep -Eq '^.+@.+\..+$'; then
+        return 1
+    fi
+    return 0
+}
+
+_trim() {
+    echo "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
+echo ""
+_print_separator
+echo " Dane uczestnika do certyfikatu"
+_print_separator
+echo " (wpisz 'q' w dowolnym polu, aby zrezygnowac)"
+
+PARTICIPANT_CONFIRMED=""
+while [ -z "$PARTICIPANT_CONFIRMED" ]; do
+    echo ""
+    while true; do
+        read -r -p "  Imie       : " FIRST_NAME
+        [ "$FIRST_NAME" = "q" ] && { echo "Anulowano."; exit 1; }
+        FIRST_NAME=$(_trim "$FIRST_NAME")
+        [ -n "$FIRST_NAME" ] && break
+        echo "    Imie nie moze byc puste."
+    done
+
+    while true; do
+        read -r -p "  Nazwisko   : " LAST_NAME
+        [ "$LAST_NAME" = "q" ] && { echo "Anulowano."; exit 1; }
+        LAST_NAME=$(_trim "$LAST_NAME")
+        [ -n "$LAST_NAME" ] && break
+        echo "    Nazwisko nie moze byc puste."
+    done
+
+    while true; do
+        read -r -p "  E-mail     : " EMAIL1
+        [ "$EMAIL1" = "q" ] && { echo "Anulowano."; exit 1; }
+        if ! _validate_email "$EMAIL1"; then
+            echo "    Niepoprawny format (oczekiwano: nazwa@domena.tld, bez spacji)."
+            continue
+        fi
+        read -r -p "  E-mail (potwierdzenie): " EMAIL2
+        [ "$EMAIL2" = "q" ] && { echo "Anulowano."; exit 1; }
+        if ! _validate_email "$EMAIL2"; then
+            echo "    Niepoprawny format (oczekiwano: nazwa@domena.tld, bez spacji)."
+            continue
+        fi
+        EMAIL1_NORM=$(echo "$EMAIL1" | tr '[:upper:]' '[:lower:]')
+        EMAIL2_NORM=$(echo "$EMAIL2" | tr '[:upper:]' '[:lower:]')
+        if [ "$EMAIL1_NORM" != "$EMAIL2_NORM" ]; then
+            echo "    Adresy roznia sie - wpisz oba ponownie."
+            continue
+        fi
+        EMAIL="$EMAIL1_NORM"
+        break
+    done
+
+    echo ""
+    echo "  Dane do certyfikatu:"
+    echo "    Imie     : $FIRST_NAME"
+    echo "    Nazwisko : $LAST_NAME"
+    echo "    E-mail   : $EMAIL"
+    echo ""
+    read -r -p "  Czy dane sa poprawne? [t/n/q]: " CONFIRM
+    case "$CONFIRM" in
+        q|Q) echo "Anulowano."; exit 1 ;;
+        t|T) PARTICIPANT_CONFIRMED="yes" ;;
+        *)   echo "  Wpisz dane ponownie." ;;
+    esac
 done
 
 # --- Zbieranie sum kontrolnych checkpointów ---
@@ -95,9 +151,10 @@ project_id=${PROJECT_ID}
 account=${ACCOUNT}
 region=${REGION}
 completion_timestamp=${CERT_TIMESTAMP}
+participant_first_name=${FIRST_NAME}
+participant_last_name=${LAST_NAME}
+participant_email=${EMAIL}
 all_checkpoints_present=TRUE
-final_cloud_run_services:
-$(echo -e "$FINAL_SERVICES_INFO")
 checkpoint_hashes:
 $(echo -e "$CHECKPOINT_HASHES")
 verification=PASSED_ALL_8_CHECKPOINTS"
