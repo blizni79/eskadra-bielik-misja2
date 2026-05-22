@@ -15,7 +15,13 @@ echo "=== Przygotowanie obrazu Ollama ==="
 echo ""
 
 echo "--- Krok 1/2: Tworzenie repozytorium w Artifact Registry ---"
-"$SCRIPT_DIR/create_ollama_repo.sh"
+if gcloud artifacts repositories describe "$OLLAMA_REPO_NAME" \
+        --location="$REGION" \
+        --project="$PROJECT_ID" >/dev/null 2>&1; then
+    echo "Repozytorium '$OLLAMA_REPO_NAME' już istnieje w regionie '$REGION' — pomijam tworzenie."
+else
+    "$SCRIPT_DIR/create_ollama_repo.sh"
+fi
 echo ""
 
 echo "--- Krok 2/2: Budowanie i publikowanie obrazu Docker ---"
