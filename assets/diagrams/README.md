@@ -9,6 +9,7 @@ Interaktywne wizualizacje architektury systemu RAG. Można je otworzyć już po 
 | `architektura_interaktywna.html` | Pełny widok systemu — komponenty i przepływ danych |
 | `architektura_interaktywna_ingestion.html` | Pipeline ingestion — ładowanie danych do BigQuery |
 | `architektura_interaktywna_rag.html` | Pipeline RAG — zapytanie → embedding → BQ → LLM → odpowiedź |
+| `architektura_interaktywna_embeddings.html` | Wprowadzenie do embeddingów — od 1D do 768D + cosine similarity |
 
 ## Dostępne nagrania wideo
 
@@ -46,7 +47,7 @@ bash serve.sh
 https://<twoj-cloud-shell-host>/architektura_interaktywna.html
 ```
 
-Skrypt wypisze pełne adresy wszystkich trzech diagramów po uruchomieniu.
+Skrypt wypisze pełne adresy wszystkich czterech diagramów po uruchomieniu.
 
 > [!NOTE]
 > Serwer działa tylko podczas aktywnej sesji Cloud Shell. Zatrzymaj go przez **Ctrl+C**.

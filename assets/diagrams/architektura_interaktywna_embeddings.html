@@ -1,0 +1,2412 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eskadra Bielik — Embeddingi: od jednej liczby do 768 | Misja 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+  /* Theme bootstrap — uruchamia się przed CSS żeby uniknąć flash złego motywu */
+  (function(){
+    try {
+      var t = localStorage.getItem('eb-theme');
+      if (t === 'light') document.documentElement.setAttribute('data-theme','light');
+    } catch(e){}
+  })();
+</script>
+<style>
+:root {
+  --bg:     #070c14;
+  --bg2:    #0c1420;
+  --bg3:    #101b2e;
+  --border: #182638;
+  --text:   #e2e8f0;
+  --blue:   #3b82f6;
+  --gold:   #f59e0b;
+  --green:  #10b981;
+  --teal:   #06b6d4;
+  --inactive-fill:   #080f18;
+  --inactive-stroke: #162030;
+  --inactive-text:   #1e3048;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #000814;
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 14px 16px;
+  position: relative;
+}
+
+/* ── SPACE BACKGROUND ── */
+#stars-canvas {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 55% 55% at 18% 48%, rgba(59,130,246,.07) 0%, transparent 68%),
+    radial-gradient(ellipse 40% 55% at 82% 28%, rgba(139,92,246,.055) 0%, transparent 68%),
+    radial-gradient(ellipse 45% 38% at 52% 88%, rgba(6,182,212,.045) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+/* ── MONITOR SHELL ── */
+#monitor-shell {
+  position: relative; z-index: 1;
+  flex: 1; display: flex; flex-direction: column;
+  border-radius: 8px; overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(59,130,246,.32),
+    0 0 24px rgba(59,130,246,.22),
+    0 0 64px rgba(59,130,246,.1),
+    0 0 140px rgba(59,130,246,.05),
+    0 8px 48px rgba(0,0,0,.7);
+  animation: monitorFloat 7s ease-in-out infinite;
+}
+/* top-edge screen reflection */
+#monitor-shell::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(147,197,253,.22) 25%, rgba(147,197,253,.5) 50%, rgba(147,197,253,.22) 75%, transparent 100%);
+  z-index: 999; pointer-events: none;
+}
+/* scanline overlay */
+#monitor-shell::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(0,0,0,.045) 3px, rgba(0,0,0,.045) 4px
+  );
+  pointer-events: none; z-index: 998;
+  border-radius: 8px;
+}
+@keyframes monitorFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+
+/* ── SPACE CORNERS ── */
+.space-corner {
+  position: fixed; width: 22px; height: 22px;
+  border-color: rgba(59,130,246,.55); border-style: solid;
+  z-index: 600; pointer-events: none;
+  animation: cornerPulse 4s ease-in-out infinite;
+}
+.space-corner.tl { top: 5px;  left: 5px;  border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+.space-corner.tr { top: 5px;  right: 5px; border-width: 2px 2px 0 0; border-radius: 0 4px 0 0; }
+.space-corner.bl { bottom: 5px; left: 5px;  border-width: 0 0 2px 2px; border-radius: 0 0 0 4px; }
+.space-corner.br { bottom: 5px; right: 5px; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+.space-corner.tr, .space-corner.br { animation-delay: .8s; }
+.space-corner.bl, .space-corner.br { animation-delay: 1.6s; }
+@keyframes cornerPulse {
+  0%, 100% { border-color: rgba(59,130,246,.45); box-shadow: none; }
+  50%       { border-color: rgba(147,197,253,.85); box-shadow: 0 0 8px rgba(59,130,246,.5); }
+}
+
+/* ── SPLASH ── */
+#splash {
+  position: fixed;
+  inset: 0;
+  background: #070c14;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  overflow: hidden;
+  transition: opacity .7s ease;
+}
+#splash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 65% 65% at 50% 50%, rgba(59,130,246,.13) 0%, transparent 72%);
+  animation: splashBgGlow 4s ease-in-out infinite;
+  pointer-events: none;
+}
+#splash-inner {
+  position: relative;
+  text-align: center;
+  animation: splashPulse 4s ease-in-out infinite;
+}
+#splash-logo {
+  width: 240px;
+  height: auto;
+  display: block;
+  margin: 0 auto 28px;
+}
+#splash-eagle { display: none; font-size: 88px; margin-bottom: 20px; }
+#splash-title {
+  font-size: 72px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 10px;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+#splash-sub {
+  font-size: 13px;
+  color: #3a5a78;
+  letter-spacing: 3px;
+  margin-bottom: 52px;
+}
+#splash-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #60a5fa;
+  letter-spacing: 3px;
+  padding: 11px 28px;
+  border: 1px solid rgba(59,130,246,.45);
+  border-radius: 32px;
+  animation: blinkHint 1.6s ease-in-out infinite;
+}
+@keyframes splashPulse {
+  0%,100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 16px rgba(59,130,246,.2));
+  }
+  50% {
+    transform: scale(1.07);
+    filter: drop-shadow(0 0 55px rgba(59,130,246,.95))
+            drop-shadow(0 0 110px rgba(59,130,246,.45))
+            drop-shadow(0 0 220px rgba(59,130,246,.15));
+  }
+}
+@keyframes splashBgGlow {
+  0%,100% { opacity:.25; transform:scale(1); }
+  50%      { opacity:1;   transform:scale(1.18); }
+}
+@keyframes blinkHint {
+  0%,100% { opacity:1;   border-color:rgba(59,130,246,.55); }
+  50%      { opacity:.3;  border-color:rgba(59,130,246,.12); }
+}
+
+/* ── BOOT OVERLAY ── */
+#boot {
+  position: fixed; inset: 0; z-index: 450; pointer-events: none; display: none;
+  background: #070c14;
+}
+#boot-line {
+  position: absolute; inset: 0;
+  background: #93c5fd;
+  transform-origin: center center;
+  transform: scaleY(0.005);
+}
+#boot-scan {
+  position: absolute; left: 0; right: 0; top: -6px; height: 4px;
+  background: rgba(147,197,253,.96);
+  box-shadow: 0 0 28px 14px rgba(59,130,246,.9), 0 0 90px 38px rgba(59,130,246,.4), 0 0 180px 60px rgba(59,130,246,.15);
+  opacity: 0;
+}
+@keyframes scanReveal {
+  0%   { filter: brightness(.35); }
+  18%  { filter: brightness(3.8) drop-shadow(0 0 28px rgba(147,197,253,.85)); }
+  55%  { filter: brightness(1.6); }
+  100% { filter: brightness(1); }
+}
+.scan-reveal { animation: scanReveal 1.4s ease-out forwards; }
+
+/* ── STEP TRANSITION ── */
+#step-veil { position:absolute; inset:0; background:#040a14; pointer-events:none; opacity:0; z-index:10; transition:opacity .35s; }
+#step-scan, #step-scan2 {
+  position:absolute; left:0; right:0; top:-6px; height:3px;
+  opacity:0; pointer-events:none; z-index:11; transition:none;
+}
+#step-scan {
+  background:rgba(147,197,253,.9);
+  box-shadow:0 0 22px 10px rgba(59,130,246,.8),0 0 70px 28px rgba(59,130,246,.35);
+}
+#step-scan2 {
+  background:rgba(147,197,253,.4);
+  box-shadow:0 0 12px 5px rgba(59,130,246,.5);
+}
+@keyframes compActivate {
+  0%   { transform:scale(0.82); filter:brightness(.4); }
+  40%  { transform:scale(1.12); filter:brightness(2.8) drop-shadow(0 0 18px rgba(255,255,255,.6)); }
+  70%  { transform:scale(0.97); filter:brightness(1.5); }
+  100% { transform:scale(1);    filter:brightness(1); }
+}
+.comp-activating {
+  transform-box:fill-box; transform-origin:center;
+  animation:compActivate 1.2s cubic-bezier(.175,.885,.32,1.275) forwards;
+}
+@keyframes compBreathe {
+  0%,100% { filter:brightness(1); }
+  50%     { filter:brightness(1.3) drop-shadow(0 0 10px rgba(255,255,255,.12)); }
+}
+.comp-breathing { animation:compBreathe 3s ease-in-out infinite; }
+.diagram-area { position:relative; }
+/* certificate stamp animation */
+@keyframes certStamp {
+  0%   { transform:translateY(-28px) scale(.94); opacity:0; filter:brightness(1.8); }
+  52%  { transform:translateY(5px)   scale(1.01); opacity:1; filter:brightness(1.25); }
+  72%  { transform:translateY(-2px)  scale(.995); filter:brightness(1); }
+  86%  { transform:translateY(1px)   scale(1.002); }
+  100% { transform:translateY(0)     scale(1); opacity:1; filter:brightness(1); }
+}
+@keyframes certRingPulse {
+  0%   { opacity:.9; stroke-width:7; }
+  55%  { opacity:.25; stroke-width:2; }
+  100% { opacity:0;  stroke-width:1.5; }
+}
+.cert-entering {
+  transform-box:fill-box; transform-origin:center;
+  animation:certStamp .85s cubic-bezier(.34,1.26,.64,1) forwards;
+}
+#c-cert-ring.cert-ring-active {
+  animation:certRingPulse 1s ease-out forwards;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+.logo-wrap { display:flex; align-items:center; gap:12px; }
+.logo-wrap img { height:32px; object-fit:contain; }
+.logo-fb { display:none; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#fff; }
+.badge {
+  font-size: 10px; font-weight:600; letter-spacing:.07em; text-transform:uppercase;
+  padding: 4px 12px; border-radius:20px;
+  background: rgba(59,130,246,.1); border:1px solid rgba(59,130,246,.28); color:#60a5fa;
+}
+
+/* ── LANGUAGE SWITCH ── */
+#splash .lang-switch {
+  position: absolute;
+  top: 22px;
+  right: 28px;
+  border-color: rgba(59,130,246,.35);
+}
+#splash .lang-btn       { color: #2a4a68; }
+#splash .lang-btn.active { background: rgba(59,130,246,.22); color: #93c5fd; }
+#splash .lang-sep        { background: rgba(59,130,246,.3); }
+.lang-switch {
+  display: flex;
+  border: 1px solid rgba(59,130,246,.28);
+  border-radius: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.lang-btn {
+  background: transparent;
+  border: none;
+  color: #3a5a78;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  padding: 4px 11px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .2s, color .2s;
+  line-height: 1;
+}
+.lang-btn.active {
+  background: rgba(59,130,246,.18);
+  color: #93c5fd;
+}
+.lang-btn:hover:not(.active) {
+  background: rgba(59,130,246,.06);
+  color: #60a5fa;
+}
+.lang-sep {
+  width: 1px;
+  background: rgba(59,130,246,.22);
+  align-self: stretch;
+}
+
+/* ── PROGRESS ── */
+.progress-wrap { padding:5px 22px; background:var(--bg2); border-bottom:1px solid var(--border); flex-shrink:0; }
+.progress-steps { display:flex; gap:5px; }
+.ps { flex:1; height:3px; border-radius:2px; background:var(--inactive-stroke); transition:background .5s; cursor:pointer; }
+.ps.done    { background:var(--blue); }
+.ps.current { background:var(--gold); }
+.ps:hover   { opacity:.8; }
+
+/* ── MAIN ── */
+.main { flex:1; display:flex; overflow:hidden; }
+.diagram-area { flex:1; padding:8px 12px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.diagram-area svg { width:100%; height:100%; }
+
+/* ── PANEL ── */
+.panel {
+  width:264px; background:var(--bg2); border-left:1px solid var(--border);
+  padding:18px 16px; display:flex; flex-direction:column; gap:12px;
+  overflow-y:auto; flex-shrink:0;
+}
+.panel-step-badge {
+  font-size:10px; font-weight:600; letter-spacing:.06em; color:#60a5fa;
+  padding:4px 12px; border-radius:20px;
+  background:rgba(59,130,246,.1); border:1px solid rgba(59,130,246,.25); width:fit-content;
+}
+.panel-title { font-size:14px; font-weight:700; line-height:1.35; color:#f1f5f9; }
+.panel-desc  { font-size:11px; color:#5a7a96; line-height:1.6; }
+.cp-badge {
+  display:flex; align-items:center; gap:8px;
+  background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.22);
+  border-radius:7px; padding:8px 12px; font-size:11px;
+  font-family:'JetBrains Mono',monospace; color:#34d399;
+  opacity:0; transition:opacity .4s;
+}
+.cp-badge.visible { opacity:1; }
+.pts-badge {
+  display:flex; align-items:center; gap:8px;
+  background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.22);
+  border-radius:7px; padding:8px 12px; font-size:12px; color:#fbbf24;
+  opacity:0; transition:opacity .4s;
+}
+.pts-badge.visible { opacity:1; }
+.active-list { flex:1; }
+.active-list h5 { font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:#2a4060; margin-bottom:8px; }
+.al-item {
+  display:flex; align-items:center; gap:8px; padding:5px 0;
+  border-bottom:1px solid var(--border); font-size:11px; color:#7a9ab8;
+  opacity:0; transform:translateX(-8px); transition:all .35s;
+}
+.al-item.show { opacity:1; transform:translateX(0); }
+.al-dot { width:6px; height:6px; border-radius:50%; background:var(--blue); flex-shrink:0; }
+
+/* ── NAV ── */
+.nav {
+  padding:8px 22px; border-top:1px solid var(--border); background:var(--bg2);
+  display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+}
+.nav-btn {
+  display:flex; align-items:center; gap:6px; padding:8px 20px;
+  border-radius:8px; border:1px solid var(--border); background:var(--bg3);
+  color:var(--text); font-size:13px; font-weight:500; cursor:pointer;
+  transition:all .2s; font-family:inherit;
+}
+.nav-btn:hover:not(:disabled) { border-color:var(--blue); color:#60a5fa; }
+.nav-btn:disabled { opacity:.3; cursor:not-allowed; }
+.nav-btn.primary { background:var(--blue); border-color:var(--blue); color:#fff; }
+.nav-btn.primary:hover:not(:disabled) { background:#2563eb; }
+.nav-ctr { font-size:13px; color:#4a6a8a; }
+.nav-ctr strong { color:var(--text); }
+
+/* ── ANIMATIONS ── */
+@keyframes dashFlow  { to { stroke-dashoffset: -28; } }
+@keyframes pulseGlow { 0%,100%{opacity:.7} 50%{opacity:1} }
+@keyframes flowPulse { 0%,100%{opacity:.55;} 50%{opacity:1;} }
+@keyframes certPop   { 0%{transform:scale(.8) translateY(10px);opacity:0} 60%{transform:scale(1.06) translateY(-2px);opacity:1} 100%{transform:scale(1);opacity:1} }
+@keyframes compPop   { 0%{filter:brightness(.5)} 30%{filter:brightness(2.6) drop-shadow(0 0 14px rgba(255,255,255,.55))} 65%{filter:brightness(1.4)} 100%{filter:brightness(1)} }
+.comp-popping { animation: compPop .65s cubic-bezier(.17,.67,.35,1.1) forwards; }
+
+/* ── PRINT CAPTION (hidden in screen mode) ── */
+#print-caption { display: none; }
+
+/* ── PRINT / PDF EXPORT ── */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    animation: none !important; transition: none !important;
+  }
+  @page { size: A4 landscape; margin: 10mm; }
+
+  /* hide all chrome */
+  #splash, #boot, #stars-canvas, body::before, .space-corner,
+  header, .progress-wrap, .panel, nav.nav,
+  #shortcuts-overlay, #comp-tooltip,
+  #step-veil, #step-scan, #step-scan2,
+  .score-wrap { display: none !important; }
+
+  body {
+    background: #000814 !important;
+    padding: 0 !important; margin: 0 !important;
+    height: auto !important; overflow: visible !important;
+    display: block !important;
+  }
+  #monitor-shell {
+    display: block !important; overflow: visible !important;
+    box-shadow: none !important; border-radius: 0 !important;
+    animation: none !important;
+  }
+  #monitor-shell::before, #monitor-shell::after { display: none !important; }
+  .main { display: block !important; overflow: visible !important; height: auto !important; }
+  .diagram-area {
+    display: block !important; width: 100% !important;
+    height: auto !important; padding: 0 !important; overflow: visible !important;
+  }
+  .diagram-area svg { width: 100% !important; height: auto !important; }
+
+  /* show caption below diagram */
+  #print-caption {
+    display: flex !important;
+    justify-content: space-between; align-items: baseline; gap: 12mm;
+    margin-top: 4mm; padding-top: 3mm;
+    border-top: 0.4pt solid rgba(59,130,246,.45);
+  }
+  #pc-step  { font-size: 7.5pt; color: #60a5fa; font-weight: 700; letter-spacing: .06em; flex-shrink: 0; }
+  #pc-title { font-size: 9pt;   color: #e2e8f0; font-weight: 600; flex: 1; }
+  #pc-brand { font-size: 7pt;   color: #2a4060; letter-spacing: .04em; flex-shrink: 0; }
+}
+
+/* ── SCORE COUNTER ── */
+.score-wrap {
+  position: relative;
+  opacity: 0; transition: opacity .4s;
+}
+.score-wrap.visible { opacity: 1; }
+.score-total {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(245,158,11,.07);
+  border: 1px solid rgba(245,158,11,.22);
+  border-radius: 7px; padding: 7px 12px;
+}
+.score-star { font-size: 13px; line-height: 1; }
+#score-val {
+  font-size: 18px; font-weight: 800; color: #fbbf24;
+  min-width: 28px; text-align: right; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+#score-suffix {
+  font-size: 10px; color: #8a6010; font-weight: 600;
+  letter-spacing: .04em; align-self: flex-end; margin-bottom: 1px;
+}
+.score-plus {
+  position: absolute; top: 2px; right: 8px;
+  font-size: 11px; font-weight: 700; color: #fbbf24;
+  pointer-events: none; opacity: 0;
+  font-family: 'JetBrains Mono', monospace;
+}
+.score-plus.pop { animation: scorePop 1.3s ease-out forwards; }
+@keyframes scorePop {
+  0%   { opacity: 1;   transform: translateY(0)     scale(1.15); }
+  20%  { opacity: 1;   transform: translateY(-6px)  scale(1); }
+  100% { opacity: 0;   transform: translateY(-26px) scale(.9); }
+}
+
+/* ── HELP BUTTON ── */
+.help-btn {
+  width: 26px; height: 26px;
+  background: transparent;
+  border: 1px solid rgba(59,130,246,.28);
+  border-radius: 50%;
+  color: #3a5a78; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all .2s; line-height: 1;
+}
+.help-btn:hover {
+  border-color: rgba(59,130,246,.65);
+  color: #60a5fa;
+  background: rgba(59,130,246,.1);
+  box-shadow: 0 0 10px rgba(59,130,246,.25);
+}
+
+/* ── SHORTCUTS OVERLAY ── */
+#shortcuts-overlay {
+  position: fixed; inset: 0; z-index: 900;
+  background: rgba(4,10,20,.78);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .22s;
+  backdrop-filter: blur(4px);
+}
+#shortcuts-overlay.visible { opacity: 1; pointer-events: auto; }
+#shortcuts-card {
+  background: #070d1a;
+  border: 1px solid rgba(59,130,246,.42);
+  border-radius: 12px;
+  padding: 24px 28px 20px;
+  min-width: 330px;
+  box-shadow: 0 8px 48px rgba(0,0,0,.7), 0 0 32px rgba(59,130,246,.12);
+  animation: scCardIn .22s ease-out;
+}
+@keyframes scCardIn {
+  from { transform: scale(.94) translateY(8px); opacity: 0; }
+  to   { transform: scale(1)   translateY(0);   opacity: 1; }
+}
+#sc-title {
+  font-size: 11px; font-weight: 700; color: #60a5fa;
+  letter-spacing: .12em; text-transform: uppercase;
+  margin-bottom: 16px;
+}
+#sc-rows { display: flex; flex-direction: column; gap: 2px; }
+.sc-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(59,130,246,.07);
+}
+.sc-row:last-child { border-bottom: none; }
+.sc-keys {
+  display: flex; gap: 5px;
+  min-width: 96px; justify-content: flex-end; flex-shrink: 0;
+}
+.sc-key {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #0d1828; border: 1px solid rgba(59,130,246,.3);
+  border-bottom-width: 2px;
+  border-radius: 5px; padding: 3px 9px;
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  color: #7ab4f0; white-space: nowrap;
+  box-shadow: 0 1px 0 rgba(0,0,0,.4);
+}
+.sc-desc { font-size: 11.5px; color: #4a6a88; line-height: 1.4; }
+#sc-hint {
+  margin-top: 14px; font-size: 9.5px; color: #1e3050;
+  text-align: center; letter-spacing: .06em;
+}
+
+/* ── COMPONENT TOOLTIP ── */
+#comp-tooltip {
+  position: fixed;
+  z-index: 800;
+  max-width: 232px;
+  background: #080f1c;
+  border: 1px solid rgba(59,130,246,.42);
+  border-radius: 9px;
+  padding: 10px 14px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .18s, transform .18s;
+  box-shadow: 0 6px 28px rgba(0,0,0,.55), 0 0 0 1px rgba(59,130,246,.08), 0 0 18px rgba(59,130,246,.1);
+}
+#comp-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+#ctt-title {
+  font-size: 11px; font-weight: 700;
+  color: #93c5fd; margin-bottom: 6px;
+  letter-spacing: .03em;
+}
+#ctt-desc {
+  font-size: 10.5px; color: #5a7a96;
+  line-height: 1.58;
+}
+#ctt-tech {
+  font-size: 9px; color: #2a4060;
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 7px; padding-top: 7px;
+  border-top: 1px solid rgba(59,130,246,.14);
+  letter-spacing: .02em;
+}
+
+/* ════════════════════════════════════════════════════════════
+   ── THEME TOGGLE PILL ──
+   ════════════════════════════════════════════════════════════ */
+.theme-toggle {
+  position: relative;
+  width: 38px; height: 18px;
+  border-radius: 11px;
+  border: 1px solid rgba(59,130,246,.28);
+  background: rgba(13,24,40,.6);
+  cursor: pointer;
+  transition: background .25s, border-color .25s;
+  flex-shrink: 0;
+  padding: 0;
+  font-family: inherit;
+  display: inline-block;
+}
+.theme-toggle:hover { border-color: rgba(59,130,246,.55); }
+.theme-toggle::before {
+  content: '';
+  position: absolute;
+  top: 1px; left: 1px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #60a5fa;
+  box-shadow: 0 0 6px rgba(96,165,250,.6);
+  transition: left .25s, background .25s, box-shadow .25s;
+}
+#splash .theme-toggle {
+  position: absolute;
+  top: 24px;
+  right: 96px;
+  background: rgba(255,255,255,.04);
+  border-color: rgba(59,130,246,.35);
+}
+
+/* ════════════════════════════════════════════════════════════
+   ── LIGHT MODE OVERRIDES ──
+   Dla rzutnika: białe tło, ciemny tekst, jasne komponenty.
+   Stonowane efekty kosmiczne (subtle), bez agresywnych glow.
+   ════════════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  --bg:     #ffffff;
+  --bg2:    #f8fafc;
+  --bg3:    #e2e8f0;
+  --border: #cbd5e1;
+  --text:   #0f172a;
+  --blue:   #2563eb;
+  --gold:   #d97706;
+  --green:  #15803d;
+  --teal:   #0891b2;
+  --inactive-fill:   #f8fafc;
+  --inactive-stroke: #cbd5e1;
+  --inactive-text:   #94a3b8;
+}
+
+/* body bg */
+[data-theme="light"] body { background: #f8fafc; }
+
+/* subtelne radialne tło */
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse 55% 55% at 18% 48%, rgba(37,99,235,.030) 0%, transparent 68%),
+    radial-gradient(ellipse 40% 55% at 82% 28%, rgba(139,92,246,.022) 0%, transparent 68%),
+    radial-gradient(ellipse 45% 38% at 52% 88%, rgba(6,182,212,.020) 0%, transparent 65%);
+}
+
+/* monitor shell — zamiast niebieskiego glow szare */
+[data-theme="light"] #monitor-shell {
+  box-shadow:
+    0 0 0 1px rgba(148,163,184,.45),
+    0 0 24px rgba(148,163,184,.20),
+    0 0 64px rgba(148,163,184,.10),
+    0 8px 32px rgba(15,23,42,.10);
+}
+[data-theme="light"] #monitor-shell::before {
+  background: linear-gradient(90deg, transparent 0%, rgba(148,163,184,.22) 50%, transparent 100%);
+}
+[data-theme="light"] #monitor-shell::after {
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,.020) 3px, rgba(0,0,0,.020) 4px);
+}
+
+/* narożniki kosmiczne — subtelnie szare */
+[data-theme="light"] .space-corner {
+  border-color: rgba(100,116,139,.5);
+  animation: cornerPulseLight 4s ease-in-out infinite;
+}
+@keyframes cornerPulseLight {
+  0%,100% { border-color: rgba(100,116,139,.5); box-shadow: none; }
+  50%      { border-color: rgba(71,85,105,.8);  box-shadow: 0 0 8px rgba(100,116,139,.4); }
+}
+
+/* splash w light */
+[data-theme="light"] #splash { background: #ffffff; }
+[data-theme="light"] #splash::before {
+  background: radial-gradient(ellipse 65% 65% at 50% 50%, rgba(37,99,235,.06) 0%, transparent 72%);
+  animation: splashBgGlowLight 4s ease-in-out infinite;
+}
+@keyframes splashBgGlowLight {
+  0%,100% { opacity:.20; transform:scale(1); }
+  50%      { opacity:.85; transform:scale(1.18); }
+}
+[data-theme="light"] #splash-inner {
+  animation: splashPulseLight 4s ease-in-out infinite;
+}
+@keyframes splashPulseLight {
+  0%,100% { transform: scale(1); filter: drop-shadow(0 0 16px rgba(37,99,235,.15)); }
+  50% { transform: scale(1.07);
+        filter: drop-shadow(0 0 55px rgba(37,99,235,.55))
+                drop-shadow(0 0 110px rgba(37,99,235,.25))
+                drop-shadow(0 0 220px rgba(37,99,235,.08)); }
+}
+[data-theme="light"] #splash-title { color: #0f172a; }
+[data-theme="light"] #splash-sub   { color: #64748b; }
+[data-theme="light"] #splash-hint {
+  color: #2563eb;
+  border-color: rgba(37,99,235,.4);
+  animation: blinkHintLight 1.6s ease-in-out infinite;
+}
+@keyframes blinkHintLight {
+  0%,100% { opacity:1;   border-color:rgba(37,99,235,.5); }
+  50%      { opacity:.35; border-color:rgba(37,99,235,.12); }
+}
+
+/* logo — odwraca białe SVG na ciemne */
+[data-theme="light"] #splash-logo,
+[data-theme="light"] #hdr-logo { filter: invert(1) brightness(.7); }
+
+/* boot overlay */
+[data-theme="light"] #boot { background: #ffffff; }
+
+/* step transitions */
+[data-theme="light"] #step-veil { background: rgba(255,255,255,.85); }
+
+/* animations — drop-shadow w wersji ciemnej */
+[data-theme="light"] .scan-reveal { animation: scanRevealLight 1.4s ease-out forwards; }
+@keyframes scanRevealLight {
+  0%   { filter: brightness(.7); }
+  18%  { filter: brightness(1.5) drop-shadow(0 0 28px rgba(37,99,235,.5)); }
+  55%  { filter: brightness(1.12); }
+  100% { filter: brightness(1); }
+}
+[data-theme="light"] .comp-activating { animation: compActivateLight 1.2s cubic-bezier(.175,.885,.32,1.275) forwards; }
+@keyframes compActivateLight {
+  0%   { transform:scale(0.82); filter:brightness(.85); }
+  40%  { transform:scale(1.12); filter:brightness(1.4) drop-shadow(0 0 18px rgba(37,99,235,.5)); }
+  70%  { transform:scale(0.97); filter:brightness(1.12); }
+  100% { transform:scale(1);    filter:brightness(1); }
+}
+[data-theme="light"] .comp-breathing { animation: compBreatheLight 3s ease-in-out infinite; }
+@keyframes compBreatheLight {
+  0%,100% { filter:brightness(1); }
+  50%     { filter:brightness(1.05) drop-shadow(0 0 10px rgba(37,99,235,.12)); }
+}
+[data-theme="light"] .comp-popping { animation: compPopLight .65s cubic-bezier(.17,.67,.35,1.1) forwards; }
+@keyframes compPopLight {
+  0%   { filter:brightness(.9) }
+  30%  { filter:brightness(1.4) drop-shadow(0 0 14px rgba(37,99,235,.45)) }
+  65%  { filter:brightness(1.12) }
+  100% { filter:brightness(1) }
+}
+
+/* certificate — białe tło zamiast ciemnego */
+[data-theme="light"] #c-certificate > rect:first-child {
+  fill: #ffffff;
+  stroke: rgba(37,99,235,.35);
+}
+[data-theme="light"] #c-cert-ring { stroke: #2563eb; }
+
+/* header / badge */
+[data-theme="light"] .badge {
+  background: rgba(37,99,235,.08);
+  border-color: rgba(37,99,235,.32);
+  color: #1d4ed8;
+}
+
+/* lang switch */
+[data-theme="light"] .lang-switch { border-color: rgba(37,99,235,.32); }
+[data-theme="light"] .lang-btn { color: #64748b; }
+[data-theme="light"] .lang-btn.active { background: rgba(37,99,235,.12); color: #1d4ed8; }
+[data-theme="light"] .lang-btn:hover:not(.active) { background: rgba(37,99,235,.06); color: #2563eb; }
+[data-theme="light"] .lang-sep { background: rgba(37,99,235,.22); }
+[data-theme="light"] #splash .lang-switch { border-color: rgba(37,99,235,.4); }
+[data-theme="light"] #splash .lang-btn { color: #94a3b8; }
+[data-theme="light"] #splash .lang-btn.active { background: rgba(37,99,235,.18); color: #1d4ed8; }
+[data-theme="light"] #splash .lang-sep { background: rgba(37,99,235,.3); }
+
+/* panel */
+[data-theme="light"] .panel-title { color: #0f172a; }
+[data-theme="light"] .panel-desc  { color: #475569; }
+[data-theme="light"] .panel-step-badge {
+  color: #1d4ed8;
+  background: rgba(37,99,235,.08);
+  border-color: rgba(37,99,235,.28);
+}
+[data-theme="light"] .cp-badge {
+  background: rgba(16,185,129,.10);
+  border-color: rgba(16,185,129,.35);
+  color: #047857;
+}
+[data-theme="light"] .pts-badge {
+  background: rgba(245,158,11,.12);
+  border-color: rgba(245,158,11,.35);
+  color: #b45309;
+}
+[data-theme="light"] .active-list h5 { color: #64748b; }
+[data-theme="light"] .al-item { color: #475569; border-bottom-color: #e2e8f0; }
+[data-theme="light"] .al-dot  { background: #2563eb; }
+
+/* nav */
+[data-theme="light"] .nav-btn:hover:not(:disabled) { border-color: #2563eb; color: #1d4ed8; }
+[data-theme="light"] .nav-ctr { color: #64748b; }
+[data-theme="light"] .nav-ctr strong { color: #0f172a; }
+
+/* score */
+[data-theme="light"] .score-total {
+  background: rgba(245,158,11,.10);
+  border-color: rgba(245,158,11,.35);
+}
+[data-theme="light"] #score-val { color: #b45309; }
+[data-theme="light"] #score-suffix { color: #92400e; }
+[data-theme="light"] .score-plus { color: #b45309; }
+
+/* help button */
+[data-theme="light"] .help-btn {
+  border-color: rgba(37,99,235,.32);
+  color: #475569;
+}
+[data-theme="light"] .help-btn:hover {
+  border-color: rgba(37,99,235,.65);
+  color: #1d4ed8;
+  background: rgba(37,99,235,.08);
+  box-shadow: 0 0 10px rgba(37,99,235,.22);
+}
+
+/* shortcuts overlay */
+[data-theme="light"] #shortcuts-overlay { background: rgba(248,250,252,.85); }
+[data-theme="light"] #shortcuts-card {
+  background: #ffffff;
+  border-color: rgba(37,99,235,.32);
+  box-shadow: 0 8px 48px rgba(15,23,42,.15), 0 0 32px rgba(37,99,235,.08);
+}
+[data-theme="light"] #sc-title { color: #1d4ed8; }
+[data-theme="light"] .sc-row { border-bottom-color: rgba(37,99,235,.10); }
+[data-theme="light"] .sc-key {
+  background: #f1f5f9; border-color: rgba(37,99,235,.25);
+  color: #1d4ed8; box-shadow: 0 1px 0 rgba(15,23,42,.06);
+}
+[data-theme="light"] .sc-desc { color: #475569; }
+[data-theme="light"] #sc-hint { color: #64748b; }
+
+/* tooltip */
+[data-theme="light"] #comp-tooltip {
+  background: #ffffff;
+  border-color: rgba(37,99,235,.32);
+  box-shadow: 0 6px 28px rgba(15,23,42,.18), 0 0 0 1px rgba(37,99,235,.08), 0 0 18px rgba(37,99,235,.08);
+}
+[data-theme="light"] #ctt-title { color: #1d4ed8; }
+[data-theme="light"] #ctt-desc  { color: #475569; }
+[data-theme="light"] #ctt-tech  { color: #64748b; border-top-color: rgba(37,99,235,.14); }
+
+/* theme toggle pill — light */
+[data-theme="light"] .theme-toggle {
+  background: #e2e8f0;
+  border-color: rgba(37,99,235,.32);
+}
+[data-theme="light"] .theme-toggle:hover { border-color: rgba(37,99,235,.6); }
+[data-theme="light"] .theme-toggle::before {
+  left: 21px;
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245,158,11,.55);
+}
+[data-theme="light"] #splash .theme-toggle { background: #f1f5f9; border-color: rgba(37,99,235,.4); }
+
+/* print — wymuś dark mode dla wydruku (większa czytelność) */
+@media print {
+  [data-theme="light"] body { background: #000814 !important; color: #e2e8f0 !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ SPLASH ══ -->
+<div id="splash">
+  <button class="theme-toggle" id="theme-toggle-splash" onclick="toggleTheme()"
+          role="switch" aria-checked="false" title="Toggle light/dark mode"></button>
+  <div class="lang-switch">
+    <button class="lang-btn active" data-lang="pl" onclick="setLang('pl')">PL</button>
+    <div class="lang-sep"></div>
+    <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+  </div>
+  <div id="splash-inner">
+    <img id="splash-logo"
+         src="https://eskadra.bielik.ai/wp-content/uploads/2025/07/EB-poziom-biale.svg"
+         alt="Eskadra Bielik"
+         onerror="this.style.display='none';document.getElementById('splash-eagle').style.display='block'">
+    <div id="splash-eagle">🦅</div>
+    <div id="splash-title">EMBEDDINGI</div>
+    <div id="splash-sub">Od jednej liczby do 768 wymiarów · Misja 2</div>
+    <div id="splash-hint">→ naciśnij strzałkę</div>
+  </div>
+</div>
+
+<!-- ══ SPACE BACKGROUND ══ -->
+<canvas id="stars-canvas"></canvas>
+<div class="space-corner tl"></div>
+<div class="space-corner tr"></div>
+<div class="space-corner bl"></div>
+<div class="space-corner br"></div>
+
+<!-- ══ BOOT OVERLAY ══ -->
+<div id="boot">
+  <div id="boot-line"></div>
+  <div id="boot-scan"></div>
+</div>
+
+<!-- ══ MONITOR SHELL ══ -->
+<div id="monitor-shell">
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="logo-wrap">
+    <img id="hdr-logo"
+         src="https://eskadra.bielik.ai/wp-content/uploads/2025/07/EB-poziom-biale.svg"
+         alt="Eskadra Bielik"
+         onerror="this.style.display='none';document.getElementById('hdr-fb').style.display='flex'">
+    <div class="logo-fb" id="hdr-fb"><span>🦅</span><span>Eskadra Bielik</span></div>
+  </div>
+  <div class="badge" id="hdr-badge">Misja 2 · Embeddingi · 1D → 768D · EmbeddingGemma</div>
+  <div class="lang-switch" id="lang-switch">
+    <button class="lang-btn active" data-lang="pl" onclick="setLang('pl')">PL</button>
+    <div class="lang-sep"></div>
+    <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+  </div>
+  <button class="theme-toggle" id="theme-toggle-hdr" onclick="toggleTheme()"
+          role="switch" aria-checked="false" title="Toggle light/dark mode"></button>
+  <button class="help-btn" id="btn-help" onclick="toggleShortcuts()" title="Keyboard shortcuts">?</button>
+  <button class="help-btn" id="btn-print" onclick="doPrint()" title="Export PDF">🖨</button>
+</header>
+
+<!-- ══ PROGRESS ══ -->
+<div class="progress-wrap">
+  <div class="progress-steps" id="psteps"></div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+<div class="diagram-area">
+<svg viewBox="0 0 940 560" xmlns="http://www.w3.org/2000/svg" id="emb">
+<defs>
+  <linearGradient id="heatGrad" x1="0%" x2="100%" y1="0%" y2="0%">
+    <stop offset="0%"  stop-color="#3730a3"/>
+    <stop offset="50%" stop-color="#94a3b8"/>
+    <stop offset="100%" stop-color="#d97706"/>
+  </linearGradient>
+  <filter id="gBlue"  x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <marker id="arr-blue" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#3b82f6"/></marker>
+  <marker id="arr-gold" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#f59e0b"/></marker>
+</defs>
+
+<!-- ══ SCENE 0 — Welcome / overview ══ -->
+<g id="scene-0" class="scene">
+  <text x="470" y="180" text-anchor="middle" font-size="40" font-weight="800"
+        font-family="Inter,sans-serif" letter-spacing="4"
+        fill="#60a5fa" class="emb-title">EMBEDDINGI</text>
+  <text x="470" y="222" text-anchor="middle" font-size="14"
+        font-family="Inter,sans-serif" font-weight="500"
+        fill="#7a9ab8" class="emb-sub">Od jednej liczby do 768 wymiarów</text>
+  <text x="470" y="276" text-anchor="middle" font-size="12"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">Każdy krok dodaje kolejny wymiar znaczenia.</text>
+  <text x="470" y="296" text-anchor="middle" font-size="12"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">11 słów hotelowych · 4 klastery semantyczne · od 1D do 768D</text>
+  <g transform="translate(470 380)" font-family="Inter,sans-serif" font-size="11" text-anchor="middle">
+    <g transform="translate(-180,0)">
+      <circle cx="0" cy="0" r="18" fill="#4ade80" opacity=".22"/>
+      <circle cx="0" cy="0" r="6" fill="#4ade80"/>
+      <text id="lbl-c-food" x="0" y="36" fill="#4ade80" font-weight="600">food</text>
+      <text x="0" y="52" fill="#5a7a96" font-size="9">śniadanie · obiad · kolacja</text>
+    </g>
+    <g transform="translate(-60,0)">
+      <circle cx="0" cy="0" r="18" fill="#fb923c" opacity=".22"/>
+      <circle cx="0" cy="0" r="6" fill="#fb923c"/>
+      <text id="lbl-c-transport" x="0" y="36" fill="#fb923c" font-weight="600">transport</text>
+      <text x="0" y="52" fill="#5a7a96" font-size="9">samochód · autobus</text>
+    </g>
+    <g transform="translate(60,0)">
+      <circle cx="0" cy="0" r="18" fill="#a78bfa" opacity=".22"/>
+      <circle cx="0" cy="0" r="6" fill="#a78bfa"/>
+      <text id="lbl-c-lodging" x="0" y="36" fill="#a78bfa" font-weight="600">lodging</text>
+      <text x="0" y="52" fill="#5a7a96" font-size="9">hotel · recepcja · łóżko</text>
+    </g>
+    <g transform="translate(180,0)">
+      <circle cx="0" cy="0" r="18" fill="#22d3ee" opacity=".22"/>
+      <circle cx="0" cy="0" r="6" fill="#22d3ee"/>
+      <text id="lbl-c-wellness" x="0" y="36" fill="#22d3ee" font-weight="600">wellness</text>
+      <text x="0" y="52" fill="#5a7a96" font-size="9">spa · basen · sauna</text>
+    </g>
+  </g>
+  <text x="470" y="490" text-anchor="middle" font-size="11"
+        font-family="JetBrains Mono,monospace" fill="#5a7a96" opacity=".7" class="emb-desc">→ naciśnij strzałkę, by zacząć</text>
+</g>
+
+<!-- ══ SCENE 1 — 1D number line ══ -->
+<g id="scene-1" class="scene" style="display:none">
+  <text x="470" y="38" text-anchor="middle" font-size="15" font-weight="700"
+        font-family="Inter,sans-serif" fill="#60a5fa" id="s1-title" class="emb-title-sm">Jedna liczba (1D) — oś "trafność: jedzenie"</text>
+  <text x="470" y="58" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">Każde słowo dostaje jedną liczbę z zakresu [0, 1]</text>
+
+  <!-- axis line -->
+  <line x1="80" y1="300" x2="860" y2="300" stroke="#60a5fa" stroke-width="1.5" opacity=".7" class="emb-axis"/>
+  <!-- ticks -->
+  <line x1="80"  y1="294" x2="80"  y2="306" stroke="#60a5fa" stroke-width="1.5" opacity=".9" class="emb-axis"/>
+  <line x1="470" y1="296" x2="470" y2="304" stroke="#60a5fa" stroke-width="1"   opacity=".5" class="emb-axis"/>
+  <line x1="860" y1="294" x2="860" y2="306" stroke="#60a5fa" stroke-width="1.5" opacity=".9" class="emb-axis"/>
+  <text x="80"  y="328" text-anchor="middle" font-size="11" font-family="JetBrains Mono,monospace" fill="#7a9ab8" class="emb-tick">0.00</text>
+  <text x="470" y="328" text-anchor="middle" font-size="11" font-family="JetBrains Mono,monospace" fill="#7a9ab8" opacity=".6" class="emb-tick">0.50</text>
+  <text x="860" y="328" text-anchor="middle" font-size="11" font-family="JetBrains Mono,monospace" fill="#7a9ab8" class="emb-tick">1.00</text>
+  <!-- axis labels -->
+  <text x="80"  y="356" text-anchor="middle" font-size="10" font-style="italic"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">nie-jedzenie</text>
+  <text x="860" y="356" text-anchor="middle" font-size="10" font-style="italic"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">jedzenie</text>
+
+  <!-- 11 dots populated by JS -->
+  <g id="s1-dots"></g>
+
+  <text x="470" y="470" text-anchor="middle" font-size="12"
+        font-family="Inter,sans-serif" fill="#7a9ab8" id="s1-foot" class="emb-desc">Klaster jedzenie (zielony) wyraźnie po prawej · reszta zlewa się przy 0</text>
+</g>
+
+<!-- ══ SCENE 2 — 2D scatter ══ -->
+<g id="scene-2" class="scene" style="display:none">
+  <text x="470" y="38" text-anchor="middle" font-size="15" font-weight="700"
+        font-family="Inter,sans-serif" fill="#60a5fa" id="s2-title" class="emb-title-sm">Dwie liczby (2D) — jedzenie × transport</text>
+  <text id="s2-sub" x="470" y="58" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">Druga cecha (transport) — pojawiają się klastery</text>
+
+  <!-- axes -->
+  <line x1="200" y1="470" x2="780" y2="470" stroke="#60a5fa" stroke-width="1.5" opacity=".7" class="emb-axis"/>
+  <line x1="200" y1="90"  x2="200" y2="470" stroke="#60a5fa" stroke-width="1.5" opacity=".7" class="emb-axis"/>
+  <!-- grid -->
+  <line x1="490" y1="90"  x2="490" y2="470" stroke="#60a5fa" stroke-width=".5" opacity=".2" class="emb-axis"/>
+  <line x1="200" y1="280" x2="780" y2="280" stroke="#60a5fa" stroke-width=".5" opacity=".2" class="emb-axis"/>
+  <!-- ticks -->
+  <text x="200" y="490" text-anchor="middle" font-size="10" font-family="JetBrains Mono,monospace" fill="#7a9ab8" class="emb-tick">0.0</text>
+  <text x="780" y="490" text-anchor="middle" font-size="10" font-family="JetBrains Mono,monospace" fill="#7a9ab8" class="emb-tick">1.0</text>
+  <text x="190" y="475" text-anchor="end"    font-size="10" font-family="JetBrains Mono,monospace" fill="#7a9ab8" class="emb-tick">0.0</text>
+  <text x="190" y="95"  text-anchor="end"    font-size="10" font-family="JetBrains Mono,monospace" fill="#7a9ab8" class="emb-tick">1.0</text>
+  <!-- axis labels -->
+  <text x="780" y="508" text-anchor="end" font-size="11" font-style="italic"
+        font-family="Inter,sans-serif" fill="#5a7a96" id="s2-axis-x" class="emb-desc">jedzenie →</text>
+  <text x="184" y="85"  text-anchor="end" font-size="11" font-style="italic"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">↑ transport</text>
+
+  <!-- dots populated by JS -->
+  <g id="s2-dots"></g>
+
+  <text x="470" y="538" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#7a9ab8" id="s2-foot" class="emb-desc">3 widoczne klastery · ale nocleg i relaks nakładają się w lewym dolnym rogu</text>
+</g>
+
+<!-- ══ SCENE 3 — 3D isometric ══ -->
+<g id="scene-3" class="scene" style="display:none">
+  <text x="470" y="38" text-anchor="middle" font-size="15" font-weight="700"
+        font-family="Inter,sans-serif" fill="#60a5fa" id="s3-title" class="emb-title-sm">Trzy liczby (3D) — jedzenie × transport × relaks</text>
+  <text x="470" y="58" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#5a7a96" id="s3-sub" class="emb-desc">Trzecia oś (relaks) wreszcie oddziela spa od recepcji</text>
+
+  <!-- iso axes from origin (470, 420), unit=140; food=right-down, transport=left-down, wellness=up -->
+  <!-- floor plane outline -->
+  <polygon points="470,340 657,448 470,556 283,448" fill="#60a5fa" opacity=".05" class="emb-iso-floor"/>
+  <!-- axes -->
+  <line x1="470" y1="340" x2="657" y2="448" stroke="#fb923c" stroke-width="1.8" opacity=".8" marker-end="url(#arr-gold)" class="emb-iso-axis"/>
+  <line x1="470" y1="340" x2="283" y2="448" stroke="#fb923c" stroke-width="1.8" opacity=".8" marker-end="url(#arr-gold)" class="emb-iso-axis"/>
+  <line x1="470" y1="340" x2="470" y2="124" stroke="#22d3ee" stroke-width="1.8" opacity=".8" marker-end="url(#arr-blue)" class="emb-iso-axis"/>
+  <!-- axis labels -->
+  <text id="s3-axis-x" x="671" y="453" font-size="11" font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">jedzenie</text>
+  <text x="269" y="453" font-size="11" font-family="Inter,sans-serif" fill="#5a7a96" text-anchor="end" class="emb-desc">transport</text>
+  <text id="s3-axis-z" x="480" y="116" font-size="11" font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">relaks</text>
+
+  <!-- dots populated by JS at iso positions -->
+  <g id="s3-dots"></g>
+
+  <text id="s3-foot" x="470" y="538" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#7a9ab8" class="emb-desc">4 klastery wreszcie rozdzielone · każdy w innym "kącie" przestrzeni</text>
+</g>
+
+<!-- ══ SCENE 4 — 10D bar chart ══ -->
+<g id="scene-4" class="scene" style="display:none">
+  <text x="470" y="38" text-anchor="middle" font-size="15" font-weight="700"
+        font-family="Inter,sans-serif" fill="#60a5fa" class="emb-title-sm">Dziesięć wymiarów (10D) — semantyczny "odcisk palca"</text>
+  <text x="470" y="58" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">Każda kolumna to inna cecha · podobne słowa = podobne paski</text>
+
+  <!-- column labels -->
+  <g id="s4-headers" font-family="JetBrains Mono,monospace" font-size="9" fill="#5a7a96" class="emb-desc"></g>
+  <!-- 4 rows of bar charts populated by JS -->
+  <g id="s4-rows"></g>
+
+  <text x="470" y="538" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#7a9ab8" class="emb-desc">Wzory paskowe ujawniają semantyczne podobieństwo · śniadanie ≈ obiad ≠ samochód</text>
+</g>
+
+<!-- ══ SCENE 5 — 100D ══ -->
+<g id="scene-5" class="scene" style="display:none">
+  <text x="470" y="38" text-anchor="middle" font-size="15" font-weight="700"
+        font-family="Inter,sans-serif" fill="#60a5fa" class="emb-title-sm">Sto wymiarów (100D) — era GloVe (2014)</text>
+  <text x="470" y="58" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">Gęsty wektor · 100 cech naraz · podobieństwo dalej widoczne</text>
+
+  <g id="s5-rows"></g>
+
+  <text x="470" y="538" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#7a9ab8" class="emb-desc">Klastrowanie się utrzymuje · wektor staje się "odciskiem palca" znaczenia</text>
+</g>
+
+<!-- ══ SCENE 6 — 768D ══ -->
+<g id="scene-6" class="scene" style="display:none">
+  <text x="470" y="38" text-anchor="middle" font-size="15" font-weight="700"
+        font-family="Inter,sans-serif" fill="#60a5fa" class="emb-title-sm">768 wymiarów — EmbeddingGemma (Google)</text>
+  <text x="470" y="58" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">Dokładnie ten wymiar, którego używamy w warsztacie</text>
+
+  <!-- model badge -->
+  <g transform="translate(470 110)">
+    <rect x="-160" y="-22" width="320" height="44" rx="8" fill="#080f18" stroke="#22d3ee" stroke-width="1.2" opacity=".95" class="emb-card"/>
+    <text x="0" y="0" text-anchor="middle" dy="4" font-size="13" font-weight="700" font-family="Inter,sans-serif" fill="#22d3ee">EmbeddingGemma · 768D</text>
+    <text x="0" y="16" text-anchor="middle" font-size="9" font-family="JetBrains Mono,monospace" fill="#5a7a96">Cloud Run · Mean Pooling · 2× Dense layer</text>
+  </g>
+
+  <g id="s6-rows"></g>
+
+  <text x="470" y="538" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#7a9ab8" class="emb-desc">768 liczb na słowo · pełne bogactwo niuansów semantycznych</text>
+</g>
+
+<!-- ══ SCENE 7 — Matryoshka ══ -->
+<g id="scene-7" class="scene" style="display:none">
+  <text x="470" y="38" text-anchor="middle" font-size="15" font-weight="700"
+        font-family="Inter,sans-serif" fill="#60a5fa" class="emb-title-sm">Matryoshka — skrócenie wektora bez utraty jakości</text>
+  <text x="470" y="58" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">EmbeddingGemma pozwala "uciąć" wektor do 256, 128 — i dalej działa</text>
+
+  <!-- Full 768D row -->
+  <text x="120" y="118" font-size="11" font-family="Inter,sans-serif" font-weight="600" fill="#7a9ab8" class="emb-desc">768D (pełny)</text>
+  <g id="s7-row-768"></g>
+  <line x1="120" y1="152" x2="820" y2="152" stroke="#60a5fa" stroke-width=".5" opacity=".3" class="emb-axis"/>
+  <text x="828" y="125" font-size="10" font-family="JetBrains Mono,monospace" fill="#22d3ee">100%</text>
+
+  <!-- 256D truncated -->
+  <text x="120" y="190" font-size="11" font-family="Inter,sans-serif" font-weight="600" fill="#7a9ab8" class="emb-desc">256D (skrócony)</text>
+  <g id="s7-row-256"></g>
+  <line x1="120" y1="224" x2="820" y2="224" stroke="#60a5fa" stroke-width=".5" opacity=".3" class="emb-axis"/>
+  <text x="828" y="197" font-size="10" font-family="JetBrains Mono,monospace" fill="#22d3ee">~98%</text>
+
+  <!-- 128D truncated -->
+  <text x="120" y="262" font-size="11" font-family="Inter,sans-serif" font-weight="600" fill="#7a9ab8" class="emb-desc">128D (skrócony)</text>
+  <g id="s7-row-128"></g>
+  <line x1="120" y1="296" x2="820" y2="296" stroke="#60a5fa" stroke-width=".5" opacity=".3" class="emb-axis"/>
+  <text x="828" y="269" font-size="10" font-family="JetBrains Mono,monospace" fill="#22d3ee">~95%</text>
+
+  <!-- quality chart -->
+  <g transform="translate(220 360)">
+    <text x="240" y="-12" text-anchor="middle" font-size="11" font-family="Inter,sans-serif" font-weight="600" fill="#7a9ab8" class="emb-desc">Jakość vs rozmiar</text>
+    <line x1="0" y1="100" x2="480" y2="100" stroke="#60a5fa" stroke-width="1" opacity=".5" class="emb-axis"/>
+    <line x1="0" y1="0" x2="0" y2="100" stroke="#60a5fa" stroke-width="1" opacity=".5" class="emb-axis"/>
+    <!-- bars: 128, 256, 768 -->
+    <rect x="60"  y="50" width="60" height="50" fill="#fb923c" opacity=".7" class="emb-bar"/>
+    <text x="90"  y="116" text-anchor="middle" font-size="10" font-family="JetBrains Mono,monospace" fill="#7a9ab8" class="emb-desc">128D</text>
+    <text x="90"  y="42" text-anchor="middle" font-size="10" font-family="JetBrains Mono,monospace" fill="#fb923c">95%</text>
+    <rect x="200" y="20" width="60" height="80" fill="#22d3ee" opacity=".7" class="emb-bar"/>
+    <text x="230" y="116" text-anchor="middle" font-size="10" font-family="JetBrains Mono,monospace" fill="#7a9ab8" class="emb-desc">256D</text>
+    <text x="230" y="12" text-anchor="middle" font-size="10" font-family="JetBrains Mono,monospace" fill="#22d3ee">98%</text>
+    <rect x="340" y="0"  width="60" height="100" fill="#4ade80" opacity=".7" class="emb-bar"/>
+    <text x="370" y="116" text-anchor="middle" font-size="10" font-family="JetBrains Mono,monospace" fill="#7a9ab8" class="emb-desc">768D</text>
+    <text x="370" y="-8" text-anchor="middle" font-size="10" font-family="JetBrains Mono,monospace" fill="#4ade80">100%</text>
+  </g>
+
+  <text x="470" y="538" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#7a9ab8" id="s7-foot" class="emb-desc">3× mniej miejsca, &lt; 5% strat jakości · idealne dla wyszukiwania na skalę</text>
+</g>
+
+<!-- ══ SCENE 8 — BigQuery table ══ -->
+<g id="scene-8" class="scene" style="display:none">
+  <text x="470" y="38" text-anchor="middle" font-size="15" font-weight="700"
+        font-family="Inter,sans-serif" fill="#60a5fa" class="emb-title-sm">Słownik wektorów — rag_dataset.hotel_rules</text>
+  <text x="470" y="58" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">Każdy chunk dokumentu = 1 wiersz w BigQuery, jeden 768D wektor</text>
+
+  <!-- table frame -->
+  <rect x="60" y="90" width="820" height="396" rx="6" fill="#080f18" stroke="#162030" stroke-width="1" class="emb-card"/>
+  <!-- table header bg -->
+  <rect x="60" y="90" width="820" height="34" rx="6" fill="#101b2e" class="emb-card-hdr"/>
+  <line x1="60" y1="124" x2="880" y2="124" stroke="#162030" stroke-width="1" class="emb-table-line"/>
+
+  <!-- header labels -->
+  <text x="86"  y="112" font-size="11" font-weight="700" font-family="JetBrains Mono,monospace" fill="#60a5fa" class="emb-col-hdr">id</text>
+  <text x="160" y="112" font-size="11" font-weight="700" font-family="JetBrains Mono,monospace" fill="#60a5fa" class="emb-col-hdr">content</text>
+  <text x="540" y="112" font-size="11" font-weight="700" font-family="JetBrains Mono,monospace" fill="#60a5fa" class="emb-col-hdr">embedding (FLOAT64 REPEATED, 768)</text>
+
+  <!-- rows populated by JS -->
+  <g id="s8-rows"></g>
+
+  <text x="470" y="528" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#7a9ab8" class="emb-desc">VECTOR_SEARCH używa kolumny embedding · podobne słowa = podobne wektory</text>
+</g>
+
+<!-- ══ SCENE 9 — Cosine similarity search ══ -->
+<g id="scene-9" class="scene" style="display:none">
+  <text x="470" y="38" text-anchor="middle" font-size="15" font-weight="700"
+        font-family="Inter,sans-serif" id="s9-title" fill="#60a5fa" class="emb-title-sm">Wyszukiwanie semantyczne — podobieństwo cosinusowe</text>
+  <text x="470" y="58" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" id="s9-sub" fill="#5a7a96" class="emb-desc">Zapytanie → embedding → najbliższy wektor · to jest VECTOR_SEARCH w BigQuery</text>
+
+  <!-- query box -->
+  <g transform="translate(80 90)">
+    <rect x="0" y="0" width="780" height="58" rx="7" fill="#080f18" stroke="#f59e0b" stroke-width="1.2" opacity=".9" class="emb-card emb-query-card"/>
+    <text x="14" y="20" font-size="10" font-weight="700" font-family="JetBrains Mono,monospace" id="s9-querylbl" fill="#f59e0b" letter-spacing="1">ZAPYTANIE</text>
+    <text id="s9-query-text" x="14" y="42" font-size="13" font-family="Inter,sans-serif" font-weight="600" fill="#fbbf24">"O której godzinie podają śniadanie?"</text>
+    <g id="s9-query-emb" transform="translate(420 30)"></g>
+  </g>
+
+  <text x="80" y="186" font-size="11" font-family="Inter,sans-serif" font-weight="700" id="s9-resultshdr" fill="#7a9ab8" class="emb-desc">Podobieństwo do każdego wiersza tabeli:</text>
+
+  <g id="s9-results"></g>
+
+  <text x="470" y="528" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" id="s9-foot" fill="#7a9ab8" class="emb-desc">Top-3 najwyższe wyniki · w warsztacie: top_k=3, dystans COSINE</text>
+</g>
+
+<!-- ══ SCENE 10 — Bridge to RAG architecture ══ -->
+<g id="scene-10" class="scene" style="display:none">
+  <text x="470" y="38" text-anchor="middle" font-size="15" font-weight="700"
+        font-family="Inter,sans-serif" fill="#60a5fa" class="emb-title-sm">Gdzie to się dzieje w naszej architekturze?</text>
+  <text x="470" y="58" text-anchor="middle" font-size="11"
+        font-family="Inter,sans-serif" fill="#5a7a96" class="emb-desc">Cały proces embedowania zachodzi w komponencie EmbeddingGemma</text>
+
+  <!-- mini-RAG diagram (simplified) -->
+  <g transform="translate(60 100)">
+    <!-- GCP project frame -->
+    <rect x="0" y="0" width="820" height="360" rx="10" fill="#040a14" stroke="#0d2040" stroke-width="1.5" class="emb-rag-frame"/>
+    <text x="14" y="22" font-size="9" font-weight="700" font-family="Inter,sans-serif"
+          fill="#1a4080" letter-spacing="1">GOOGLE CLOUD PROJECT</text>
+
+    <!-- Orchestration -->
+    <rect x="30" y="46" width="760" height="58" rx="6" fill="#080f18" stroke="#162030" stroke-width="1" class="emb-rag-comp"/>
+    <text x="46" y="76" font-size="22">⚙️</text>
+    <text x="80" y="72" font-size="11" font-weight="700" font-family="Inter,sans-serif" fill="#38bdf8" class="emb-rag-lbl">Orchestration API (FastAPI · Cloud Run)</text>
+    <text x="80" y="90" font-size="9" font-family="JetBrains Mono,monospace" fill="#5a7a96" class="emb-rag-sub">POST /ask  ·  POST /ingest  ·  GET /docs</text>
+
+    <!-- Bielik -->
+    <rect x="30" y="130" width="240" height="100" rx="6" fill="#080f18" stroke="#162030" stroke-width="1" class="emb-rag-comp"/>
+    <text x="50" y="158" font-size="22">🦅</text>
+    <text x="84" y="158" font-size="11" font-weight="700" font-family="Inter,sans-serif" fill="#a78bfa" class="emb-rag-lbl">Bielik LLM</text>
+    <text x="50" y="184" font-size="9" font-family="JetBrains Mono,monospace" fill="#5a7a96" class="emb-rag-sub">Cloud Run · GPU L4</text>
+    <text x="50" y="200" font-size="9" font-family="JetBrains Mono,monospace" fill="#5a7a96" class="emb-rag-sub">SpeakLeash/bielik-4.5b</text>
+
+    <!-- EmbeddingGemma — HIGHLIGHTED -->
+    <rect id="s10-gemma" x="290" y="130" width="240" height="100" rx="6" fill="#08181e" stroke="#22d3ee" stroke-width="2.5" filter="url(#gBlue)" class="emb-rag-highlight"/>
+    <text x="306" y="158" font-size="20">🧠</text>
+    <text x="340" y="158" font-size="11" font-weight="700" font-family="Inter,sans-serif" fill="#22d3ee" class="emb-rag-lbl-hl">EmbeddingGemma</text>
+    <text x="310" y="184" font-size="9" font-family="JetBrains Mono,monospace" fill="#22d3ee" class="emb-rag-sub-hl" opacity=".8">Cloud Run · CPU</text>
+    <text x="310" y="200" font-size="9" font-family="JetBrains Mono,monospace" fill="#22d3ee" class="emb-rag-sub-hl" opacity=".8">text → vector[768]</text>
+    <text x="310" y="220" font-size="8" font-family="Inter,sans-serif" fill="#22d3ee" font-style="italic">↑ to ten komponent</text>
+
+    <!-- BigQuery -->
+    <rect x="550" y="130" width="240" height="100" rx="6" fill="#080f18" stroke="#162030" stroke-width="1" class="emb-rag-comp"/>
+    <text x="568" y="158" font-size="20">📊</text>
+    <text x="600" y="158" font-size="11" font-weight="700" font-family="Inter,sans-serif" fill="#818cf8" class="emb-rag-lbl">BigQuery Vector Search</text>
+    <text x="570" y="184" font-size="9" font-family="JetBrains Mono,monospace" fill="#5a7a96" class="emb-rag-sub">rag_dataset.hotel_rules</text>
+    <text x="570" y="200" font-size="9" font-family="JetBrains Mono,monospace" fill="#5a7a96" class="emb-rag-sub">VECTOR_SEARCH COSINE</text>
+
+    <!-- arrows from orch -->
+    <line x1="150" y1="106" x2="150" y2="128" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr-blue)" stroke-dasharray="5,4"/>
+    <line x1="410" y1="106" x2="410" y2="128" stroke="#22d3ee" stroke-width="2" marker-end="url(#arr-blue)" stroke-dasharray="5,4"/>
+    <line x1="670" y1="106" x2="670" y2="128" stroke="#818cf8" stroke-width="1.5" marker-end="url(#arr-blue)" stroke-dasharray="5,4"/>
+
+    <!-- text below -->
+    <text x="410" y="280" text-anchor="middle" font-size="11" font-family="Inter,sans-serif" font-weight="600" fill="#22d3ee" class="emb-rag-foot-hl">Tu zachodzi cały proces, który właśnie przeszliśmy</text>
+    <text x="410" y="298" text-anchor="middle" font-size="10" font-family="Inter,sans-serif" fill="#7a9ab8" class="emb-rag-foot">tekst dokumentów → wektory 768D → przechowanie w BigQuery</text>
+    <text x="410" y="332" text-anchor="middle" font-size="9" font-family="JetBrains Mono,monospace" fill="#5a7a96" class="emb-rag-foot">→ pełna architektura: architektura_interaktywna_rag.html</text>
+  </g>
+</g>
+
+</svg>
+<div id="step-veil"></div>
+<div id="step-scan"></div>
+<div id="step-scan2"></div>
+<div id="print-caption">
+  <div id="pc-step"></div>
+  <div id="pc-title"></div>
+  <div id="pc-brand">Eskadra Bielik · Misja 2 · RAG Architecture · Google Cloud</div>
+</div>
+</div><!-- /diagram-area -->
+
+<!-- SIDE PANEL -->
+<div class="panel">
+  <div class="panel-step-badge" id="p-step">Krok 0 z 9</div>
+  <div class="panel-title" id="p-title">Architektura RAG</div>
+  <div class="panel-desc" id="p-desc">Pełna architektura systemu RAG. Wszystkie komponenty nieaktywne — zacznij krok po kroku!</div>
+  <div class="cp-badge" id="p-cp"><span>✅</span><span id="p-cp-name">checkpoint</span></div>
+  <div class="pts-badge" id="p-pts"><span>🏅</span><span id="p-pts-val">punkty</span></div>
+  <div class="score-wrap" id="score-wrap">
+    <div class="score-total">
+      <span class="score-star">⭐</span>
+      <span id="score-val">0</span>
+      <span id="score-suffix">/ 75 pkt</span>
+    </div>
+    <div class="score-plus" id="score-plus"></div>
+  </div>
+  <div class="active-list">
+    <h5 id="active-list-title">Aktywne komponenty</h5>
+    <div id="p-active"></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn" id="btn-prev" onclick="go(-1)">← Wstecz</button>
+  <div class="nav-ctr" id="nav-ctr">Krok <strong id="nav-cur">0</strong> / <strong>9</strong></div>
+  <button class="nav-btn primary" id="btn-next" onclick="go(1)">Dalej →</button>
+</nav>
+
+</div><!-- /monitor-shell -->
+
+<!-- ══ SHORTCUTS OVERLAY ══ -->
+<div id="shortcuts-overlay" onclick="closeShortcuts()">
+  <div id="shortcuts-card" onclick="event.stopPropagation()">
+    <div id="sc-title">Skróty klawiszowe</div>
+    <div id="sc-rows"></div>
+    <div id="sc-hint">Naciśnij ? lub Esc aby zamknąć</div>
+  </div>
+</div>
+
+<!-- ══ COMPONENT TOOLTIP ══ -->
+<div id="comp-tooltip">
+  <div id="ctt-title"></div>
+  <div id="ctt-desc"></div>
+  <div id="ctt-tech"></div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   ── EMBEDDINGS DIAGRAM — full inline JS ──
+   ════════════════════════════════════════════════════════════ */
+
+/* ── LANGUAGE ── */
+let lang = localStorage.getItem('eb-lang') || 'pl';
+
+/* ── i18n (inline — bez współdzielenia z i18n.js) ── */
+const EMB_I18N = {
+  pl: {
+    ui: {
+      splash:  { title: 'EMBEDDINGI', sub: 'Od jednej liczby do 768 wymiarów · Misja 2', hint: '→ naciśnij strzałkę' },
+      badge:   'Misja 2 · Embeddingi · 1D → 768D · EmbeddingGemma',
+      nav:     { prev: '← Wstecz', next: 'Dalej →', step: 'Krok' },
+      panel:   { stepOf: 'Krok {n} z {total}', activeComponents: 'Co właśnie widzisz' },
+      progressDot: 'Krok {i}',
+      print:   { brand: 'Eskadra Bielik · Misja 2 · Embeddingi', btnTitle: 'Drukuj / eksport PDF' }
+    },
+    steps: [
+      { title: 'Embeddingi — wprowadzenie',
+        desc:  'Embedding = lista liczb opisująca znaczenie słowa. Podobne słowa = podobne liczby. Każdy krok dodaje kolejny wymiar.',
+        items: ['11 słów hotelowych', '4 klastery semantyczne', 'Od 1D do 768D', 'Cosine similarity', 'Łącznik z RAG'] },
+      { title: 'Krok 1 — Jedna liczba (1D)',
+        desc:  'Każde słowo dostaje jedną liczbę: jak bardzo dotyczy "jedzenia". Klaster jedzenie wyraźnie wystaje · reszta zlewa się.',
+        items: ['Oś: trafność jedzenia', '11 słów na linii', 'Klaster jedzenie: 0.90+', 'Reszta: ~0.05–0.30'] },
+      { title: 'Krok 2 — Dwie liczby (2D)',
+        desc:  'Dodajemy drugą cechę — "transport". Teraz są 3 grupy, ale nocleg i relaks nakładają się.',
+        items: ['Oś X: jedzenie', 'Oś Y: transport', 'Klaster jedzenie: prawo-dół', 'Klaster transport: lewo-góra', 'Nocleg + relaks: zmieszane'] },
+      { title: 'Krok 3 — Trzy liczby (3D)',
+        desc:  'Trzecia oś (relaks) wreszcie oddziela spa od recepcji. 4 klastery wyraźnie rozdzielone.',
+        items: ['Oś Z: relaks', 'Izometryczny rzut', '4 klastery rozdzielone', 'Każdy w innym "kącie"'] },
+      { title: 'Krok 4 — 10 wymiarów',
+        desc:  'Każda kolumna to inna cecha (jedzenie, transport, czas, wnętrze, płatne...). Wzór paskowy = "odcisk palca" znaczenia.',
+        items: ['10 cech naraz', 'Słupkowy wykres per słowo', 'śniadanie ≈ obiad', 'samochód ≠ spa'] },
+      { title: 'Krok 5 — 100 wymiarów',
+        desc:  'GloVe (Stanford, 2014) używał 100D — przez wiele lat standard. Gęsty wektor, klastrowanie się utrzymuje.',
+        items: ['Era GloVe', '100 cech naraz', 'Gęsty odcisk palca', 'Klastery dalej widoczne'] },
+      { title: 'Krok 6 — 768 wymiarów',
+        desc:  'EmbeddingGemma (Google, 2025): 768D Mean Pooling + 2 dense layers. Dokładnie ten wymiar, którego używamy w warsztacie.',
+        items: ['EmbeddingGemma · 300M parametrów', 'Mean Pooling tokenów', '2× warstwa Dense', 'Cloud Run · tylko CPU'] },
+      { title: 'Krok 7 — Matryoshka',
+        desc:  'EmbeddingGemma obsługuje skracanie wektora: 768→256→128 zachowuje >95% jakości za 3× mniej miejsca.',
+        items: ['Matryoshka Representation Learning', '768D = 100%', '256D ≈ 98%', '128D ≈ 95%', '3× mniej miejsca'] },
+      { title: 'Krok 8 — Słownik (BigQuery)',
+        desc:  'Każdy chunk dokumentu = 1 wiersz w rag_dataset.hotel_rules. Kolumna embedding to FLOAT64 REPEATED (768).',
+        items: ['rag_dataset.hotel_rules', 'id STRING', 'content STRING', 'embedding FLOAT64 REPEATED'] },
+      { title: 'Krok 9 — Wyszukiwanie semantyczne',
+        desc:  'Zapytanie → embedding → podobieństwo cosinusowe do każdego wiersza → top-3 najbliższe. To dokładnie VECTOR_SEARCH w BigQuery.',
+        items: ['Zapytanie: pytanie użytkownika', 'Embedding zapytania (te same 768D)', 'cosine(zapytanie, doc) dla każdego', 'top_k = 3, COSINE distance'] },
+      { title: 'Krok 10 — Mostek do architektury RAG',
+        desc:  'Cały proces zachodzi w komponencie EmbeddingGemma · Cloud Run. Pełna architektura: architektura_interaktywna_rag.html.',
+        items: ['Komponent: c-gemma', 'Cloud Run · CPU', 'Wejście: tekst chunka', 'Wyjście: wektor[768]', 'Magazyn: BigQuery'] }
+    ],
+    shortcuts: {
+      title: 'Skróty klawiszowe',
+      closeHint: 'Naciśnij ? lub Esc aby zamknąć',
+      keys: [
+        { keys: ['→', '↓'],     desc: 'Następny krok' },
+        { keys: ['←', '↑'],     desc: 'Poprzedni krok' },
+        { keys: ['0–9'],        desc: 'Skok do kroku N' },
+        { keys: ['t'],          desc: 'Przełącz tryb jasny/ciemny' },
+        { keys: ['p'],          desc: 'Drukuj / eksport PDF' },
+        { keys: ['?'],          desc: 'Pokaż / ukryj skróty' },
+        { keys: ['Esc'],        desc: 'Zamknij okno' }
+      ]
+    }
+  },
+  en: {
+    ui: {
+      splash:  { title: 'EMBEDDINGS', sub: 'From one number to 768 dimensions · Mission 2', hint: '→ press the arrow' },
+      badge:   'Mission 2 · Embeddings · 1D → 768D · EmbeddingGemma',
+      nav:     { prev: '← Back', next: 'Next →', step: 'Step' },
+      panel:   { stepOf: 'Step {n} of {total}', activeComponents: 'What you see' },
+      progressDot: 'Step {i}',
+      print:   { brand: 'Eskadra Bielik · Mission 2 · Embeddings', btnTitle: 'Print / export PDF' }
+    },
+    steps: [
+      { title: 'Embeddings — intro',
+        desc:  'Embedding = a list of numbers describing meaning. Similar words → similar numbers. Each step adds a new dimension.',
+        items: ['11 hotel words', '4 semantic clusters', 'From 1D to 768D', 'Cosine similarity', 'Bridge to RAG'] },
+      { title: 'Step 1 — One number (1D)',
+        desc:  'Each word gets one number: how "food-related" it is. The food cluster clearly stands out; the rest collapses near 0.',
+        items: ['Axis: food relevance', '11 words on a line', 'Food cluster: 0.90+', 'Rest: ~0.05–0.30'] },
+      { title: 'Step 2 — Two numbers (2D)',
+        desc:  'Add a second feature — "transport". Now we see 3 groups, but lodging and wellness overlap.',
+        items: ['X axis: food', 'Y axis: transport', 'Food cluster: right-bottom', 'Transport: left-top', 'Lodging+Wellness: mixed'] },
+      { title: 'Step 3 — Three numbers (3D)',
+        desc:  'A third axis (wellness) finally separates spa from reception. 4 clusters clearly apart.',
+        items: ['Z axis: wellness', 'Isometric projection', '4 clusters separated', 'Each in its own "corner"'] },
+      { title: 'Step 4 — 10 dimensions',
+        desc:  'Each column is a different feature (jedzenie, transport, czas, wnętrze, płatne...). The bar pattern is the semantic "fingerprint".',
+        items: ['10 features at once', 'Bar chart per word', 'breakfast ≈ lunch', 'car ≠ spa'] },
+      { title: 'Step 5 — 100 dimensions',
+        desc:  'GloVe (Stanford, 2014) used 100D — for years the standard. Dense vector, clustering still visible.',
+        items: ['GloVe era', '100 features', 'Dense fingerprint', 'Clusters still visible'] },
+      { title: 'Step 6 — 768 dimensions',
+        desc:  'EmbeddingGemma (Google, 2025): 768D Mean Pooling + 2 dense layers. The exact size we use in the workshop.',
+        items: ['EmbeddingGemma · 300M params', 'Mean Pooling over tokens', '2× Dense layer', 'Cloud Run · CPU only'] },
+      { title: 'Step 7 — Matryoshka',
+        desc:  'EmbeddingGemma supports truncation: 768→256→128 keeps >95% quality at 3× lower storage.',
+        items: ['Matryoshka Representation Learning', '768D = 100%', '256D ≈ 98%', '128D ≈ 95%', '3× less storage'] },
+      { title: 'Step 8 — Dictionary (BigQuery)',
+        desc:  'Each document chunk = 1 row in rag_dataset.hotel_rules. The embedding column is FLOAT64 REPEATED (768).',
+        items: ['rag_dataset.hotel_rules', 'id STRING', 'content STRING', 'embedding FLOAT64 REPEATED'] },
+      { title: 'Step 9 — Semantic search',
+        desc:  'Query → embed → cosine similarity to every row → top-3 closest. This is exactly VECTOR_SEARCH in BigQuery.',
+        items: ['Query: user question', 'Embed query (same 768D)', 'cosine(query, doc) for each', 'top_k = 3, COSINE distance'] },
+      { title: 'Step 10 — Bridge to RAG architecture',
+        desc:  'The whole process happens in EmbeddingGemma · Cloud Run. Full architecture: architektura_interaktywna_rag.html.',
+        items: ['Component: c-gemma', 'Cloud Run · CPU', 'Input: chunk text', 'Output: vector[768]', 'Storage: BigQuery'] }
+    ],
+    shortcuts: {
+      title: 'Keyboard shortcuts',
+      closeHint: 'Press ? or Esc to close',
+      keys: [
+        { keys: ['→', '↓'],     desc: 'Next step' },
+        { keys: ['←', '↑'],     desc: 'Previous step' },
+        { keys: ['0–9'],        desc: 'Jump to step N' },
+        { keys: ['t'],          desc: 'Toggle light/dark mode' },
+        { keys: ['p'],          desc: 'Print / export PDF' },
+        { keys: ['?'],          desc: 'Show / hide shortcuts' },
+        { keys: ['Esc'],        desc: 'Close popup' }
+      ]
+    }
+  }
+};
+
+function getLangPack() {
+  return EMB_I18N[lang] || EMB_I18N['pl'];
+}
+
+/* ── SVG static labels — tłumaczenia per język ── */
+const SVG_LBLS = {
+  pl: {
+    'lbl-c-food':      'jedzenie',
+    'lbl-c-transport': 'transport',
+    'lbl-c-lodging':   'nocleg',
+    'lbl-c-wellness':  'relaks',
+    's1-title':        'Jedna liczba (1D) — oś "trafność: jedzenie"',
+    's1-foot':         'Klaster jedzenie (zielony) wyraźnie po prawej · reszta zlewa się przy 0',
+    's2-title':        'Dwie liczby (2D) — jedzenie × transport',
+    's2-sub':          'Druga cecha (transport) — pojawiają się klastery',
+    's2-axis-x':       'jedzenie →',
+    's2-foot':         '3 widoczne klastery · ale nocleg i relaks nakładają się w lewym dolnym rogu',
+    's3-title':        'Trzy liczby (3D) — jedzenie × transport × relaks',
+    's3-sub':          'Trzecia oś (relaks) wreszcie oddziela spa od recepcji',
+    's3-axis-x':       'jedzenie',
+    's3-axis-z':       'relaks',
+    's3-foot':         '4 klastery wreszcie rozdzielone · każdy w innym "kącie" przestrzeni',
+    's9-title':        'Wyszukiwanie semantyczne — podobieństwo cosinusowe',
+    's9-sub':          'Zapytanie → embedding → najbliższy wektor · to jest VECTOR_SEARCH w BigQuery',
+    's9-querylbl':     'ZAPYTANIE',
+    's9-resultshdr':   'Podobieństwo do każdego wiersza tabeli:',
+    's9-foot':         'Top-3 najwyższe wyniki · w warsztacie: top_k=3, dystans COSINE',
+    's7-foot':         '3× mniej miejsca, < 5% strat jakości · idealne dla wyszukiwania na skalę'
+  },
+  en: {
+    'lbl-c-food':      'food',
+    'lbl-c-transport': 'transport',
+    'lbl-c-lodging':   'lodging',
+    'lbl-c-wellness':  'wellness',
+    's1-title':        'One number (1D) — axis: "food relevance"',
+    's1-foot':         'The food cluster (green) clearly stands out · the rest collapses at 0',
+    's2-title':        'Two numbers (2D) — food × transport',
+    's2-sub':          'A second feature (transport) — clusters appear',
+    's2-axis-x':       'food →',
+    's2-foot':         '3 visible clusters · but lodging and wellness overlap in the bottom-left',
+    's3-title':        'Three numbers (3D) — food × transport × wellness',
+    's3-sub':          'The third axis (wellness) finally separates spa from reception',
+    's3-axis-x':       'food',
+    's3-axis-z':       'wellness',
+    's3-foot':         '4 clusters finally separated · each in its own "corner" of the space',
+    's9-title':        'Semantic search — cosine similarity',
+    's9-sub':          'Query → embedding → nearest vector · this is VECTOR_SEARCH in BigQuery',
+    's9-querylbl':     'QUERY',
+    's9-resultshdr':   'Similarity to each table row:',
+    's9-foot':         'Top-3 highest scores · in workshop: top_k=3, COSINE distance',
+    's7-foot':         '3× less storage, < 5% quality loss · ideal for large-scale search'
+  }
+};
+function applySvgLabels() {
+  const map = SVG_LBLS[lang] || SVG_LBLS.pl;
+  Object.keys(map).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = map[id];
+  });
+}
+
+/* ── DATA: 11 słów hotelowych ── */
+const WORDS = [
+  { id: 'sniadanie', label: 'śniadanie', cluster: 'food',      food: 0.95, transport: 0.02, wellness: 0.05, lodging: 0.10, time: 0.20 },
+  { id: 'obiad',     label: 'obiad',     cluster: 'food',      food: 0.92, transport: 0.02, wellness: 0.05, lodging: 0.10, time: 0.50 },
+  { id: 'kolacja',   label: 'kolacja',   cluster: 'food',      food: 0.90, transport: 0.02, wellness: 0.05, lodging: 0.10, time: 0.85 },
+  { id: 'samochod',  label: 'samochód',  cluster: 'transport', food: 0.05, transport: 0.95, wellness: 0.02, lodging: 0.10, time: 0.50 },
+  { id: 'autobus',   label: 'autobus',   cluster: 'transport', food: 0.04, transport: 0.92, wellness: 0.02, lodging: 0.10, time: 0.50 },
+  { id: 'hotel',     label: 'hotel',     cluster: 'lodging',   food: 0.30, transport: 0.10, wellness: 0.20, lodging: 0.85, time: 0.50 },
+  { id: 'recepcja',  label: 'recepcja',  cluster: 'lodging',   food: 0.10, transport: 0.05, wellness: 0.05, lodging: 0.92, time: 0.50 },
+  { id: 'lozko',     label: 'łóżko',     cluster: 'lodging',   food: 0.15, transport: 0.05, wellness: 0.05, lodging: 0.95, time: 0.30 },
+  { id: 'spa',       label: 'spa',       cluster: 'wellness',  food: 0.05, transport: 0.02, wellness: 0.95, lodging: 0.20, time: 0.50 },
+  { id: 'basen',     label: 'basen',     cluster: 'wellness',  food: 0.02, transport: 0.02, wellness: 0.92, lodging: 0.20, time: 0.50 },
+  { id: 'sauna',     label: 'sauna',     cluster: 'wellness',  food: 0.02, transport: 0.02, wellness: 0.90, lodging: 0.10, time: 0.50 }
+];
+
+/* 10D feature names (krok 4) */
+const FEATURES_10_LANG = {
+  pl: ['jedzenie', 'transport', 'relaks', 'nocleg', 'czas', 'formalność', 'wnętrze', 'płatne', 'grupa', 'harmonogram'],
+  en: ['food', 'transport', 'wellness', 'lodging', 'time', 'formality', 'indoor', 'paid', 'group', 'schedule']
+};
+function features10() { return FEATURES_10_LANG[lang] || FEATURES_10_LANG.pl; }
+
+/* Sample BigQuery table rows for scenes 8 i 9 */
+const TABLE_ROWS = [
+  { id: 'doc_001', content: { pl: 'Śniadanie 7:00–10:00 w restauracji', en: 'Breakfast 7:00–10:00 in the restaurant' }, cluster: 'food',      sim: 0.94 },
+  { id: 'doc_002', content: { pl: 'Parking pod hotelem, 30 PLN/doba',   en: 'On-site parking, 30 PLN/day' },              cluster: 'transport', sim: 0.18 },
+  { id: 'doc_003', content: { pl: 'Strefa SPA & wellness 7:00–22:00',   en: 'SPA & wellness zone 7:00–22:00' },           cluster: 'wellness',  sim: 0.31 },
+  { id: 'doc_004', content: { pl: 'Recepcja 24h · check-in od 14:00',    en: 'Reception 24h · check-in from 14:00' },      cluster: 'lodging',   sim: 0.22 },
+  { id: 'doc_005', content: { pl: 'Bufet kontynentalny + wege opcje',    en: 'Continental buffet + vegan options' },        cluster: 'food',      sim: 0.79 }
+];
+
+const QUERY_TEXT = { pl: '"O której godzinie podają śniadanie?"', en: '"What time is breakfast served?"' };
+
+/* ── STEPS BASE (no checkpoints — only scene index) ── */
+const STEPS_BASE = [
+  { scene: 0  },
+  { scene: 1  },
+  { scene: 2  },
+  { scene: 3  },
+  { scene: 4  },
+  { scene: 5  },
+  { scene: 6  },
+  { scene: 7  },
+  { scene: 8  },
+  { scene: 9  },
+  { scene: 10 }
+];
+
+function buildSteps() {
+  const src = getLangPack();
+  return STEPS_BASE.map((base, i) => Object.assign({}, base, (src && src.steps[i]) || {}));
+}
+let STEPS = buildSteps();
+
+/* ── PRINT ── */
+function doPrint() { window.print(); }
+
+/* ── SHORTCUTS OVERLAY ── */
+let shortcutsOpen = false;
+function toggleShortcuts() { shortcutsOpen ? closeShortcuts() : openShortcuts(); }
+function openShortcuts() {
+  const lp = getLangPack();
+  if (!lp || !lp.shortcuts) return;
+  const sc = lp.shortcuts;
+  document.getElementById('sc-title').textContent = sc.title;
+  document.getElementById('sc-hint').textContent  = sc.closeHint;
+  const rows = document.getElementById('sc-rows');
+  rows.innerHTML = '';
+  sc.keys.forEach(row => {
+    const div = document.createElement('div');
+    div.className = 'sc-row';
+    const keysHtml = row.keys.map(k => `<span class="sc-key">${k}</span>`).join('');
+    div.innerHTML = `<div class="sc-keys">${keysHtml}</div><div class="sc-desc">${row.desc}</div>`;
+    rows.appendChild(div);
+  });
+  document.getElementById('shortcuts-overlay').classList.add('visible');
+  shortcutsOpen = true;
+}
+function closeShortcuts() {
+  document.getElementById('shortcuts-overlay').classList.remove('visible');
+  shortcutsOpen = false;
+}
+
+/* ── LANGUAGE SWITCH ── */
+function setLang(newLang) {
+  if (lang === newLang) return;
+  lang = newLang;
+  localStorage.setItem('eb-lang', lang);
+  document.documentElement.lang = lang;
+  applyLang();
+}
+
+/* ── THEME (light/dark) ── */
+function isLight()    { return document.documentElement.getAttribute('data-theme') === 'light'; }
+function scanColor()  { return isLight() ? 'rgba(29,78,216,.85)' : 'rgba(147,197,253,.96)'; }
+function scanColor2() { return isLight() ? 'rgba(29,78,216,.6)'  : 'rgba(147,197,253,.9)'; }
+function scanColor3() { return isLight() ? 'rgba(29,78,216,.3)'  : 'rgba(147,197,253,.4)'; }
+function scanShadow() {
+  return isLight()
+    ? '0 0 28px 14px rgba(37,99,235,.45), 0 0 90px 38px rgba(37,99,235,.20), 0 0 180px 60px rgba(37,99,235,.08)'
+    : '0 0 28px 14px rgba(59,130,246,.9), 0 0 90px 38px rgba(59,130,246,.4), 0 0 180px 60px rgba(59,130,246,.15)';
+}
+function stepScanShadow()  { return isLight() ? '0 0 22px 10px rgba(37,99,235,.35),0 0 70px 28px rgba(37,99,235,.15)' : '0 0 22px 10px rgba(59,130,246,.8),0 0 70px 28px rgba(59,130,246,.35)'; }
+function stepScan2Shadow() { return isLight() ? '0 0 12px 5px rgba(37,99,235,.25)' : '0 0 12px 5px rgba(59,130,246,.5)'; }
+function bootBgColor()     { return isLight() ? '#ffffff' : '#070c14'; }
+function bootLineStart()   { return isLight() ? '#1d4ed8' : '#93c5fd'; }
+
+function applyDynamicScanColors() {
+  const sc  = document.getElementById('step-scan');
+  const sc2 = document.getElementById('step-scan2');
+  const bs  = document.getElementById('boot-scan');
+  if (sc)  { sc.style.background  = scanColor2(); sc.style.boxShadow  = stepScanShadow(); }
+  if (sc2) { sc2.style.background = scanColor3(); sc2.style.boxShadow = stepScan2Shadow(); }
+  if (bs)  { bs.style.background  = scanColor();  bs.style.boxShadow  = scanShadow(); }
+}
+
+function setTheme(t) {
+  const v = (t === 'light') ? 'light' : 'dark';
+  if (document.documentElement.getAttribute('data-theme') === v) return;
+  document.documentElement.setAttribute('data-theme', v);
+  localStorage.setItem('eb-theme', v);
+  const tg1 = document.getElementById('theme-toggle-splash');
+  const tg2 = document.getElementById('theme-toggle-hdr');
+  if (tg1) tg1.setAttribute('aria-checked', v === 'light' ? 'true' : 'false');
+  if (tg2) tg2.setAttribute('aria-checked', v === 'light' ? 'true' : 'false');
+  applyDynamicScanColors();
+  buildAllScenes();   /* rebuild visualizations with new theme colors */
+  render();
+}
+function toggleTheme() { setTheme(isLight() ? 'dark' : 'light'); }
+
+/* ── CLUSTER COLORS (per theme) ── */
+const CLUSTER_COLORS_DARK = {
+  food:      { dot:'#4ade80', soft:'rgba(74,222,128,.22)' },
+  transport: { dot:'#fb923c', soft:'rgba(251,146,60,.22)' },
+  lodging:   { dot:'#a78bfa', soft:'rgba(167,139,250,.22)' },
+  wellness:  { dot:'#22d3ee', soft:'rgba(34,211,238,.22)' }
+};
+const CLUSTER_COLORS_LIGHT = {
+  food:      { dot:'#15803d', soft:'rgba(21,128,61,.18)' },
+  transport: { dot:'#c2410c', soft:'rgba(194,65,12,.18)' },
+  lodging:   { dot:'#6d28d9', soft:'rgba(109,40,217,.18)' },
+  wellness:  { dot:'#0e7490', soft:'rgba(14,116,144,.18)' }
+};
+function clusterCol(c) {
+  const map = isLight() ? CLUSTER_COLORS_LIGHT : CLUSTER_COLORS_DARK;
+  return map[c] || { dot: '#60a5fa', soft: 'rgba(96,165,250,.2)' };
+}
+function txtColor()   { return isLight() ? '#0f172a' : '#e2e8f0'; }
+function descColor()  { return isLight() ? '#475569' : '#7a9ab8'; }
+function axisColor()  { return isLight() ? '#94a3b8' : '#60a5fa'; }
+function bgCardColor(){ return isLight() ? '#ffffff' : '#080f18'; }
+function bgCardBorder(){return isLight() ? '#cbd5e1' : '#162030'; }
+function valueColorPos(v) {
+  /* v in [-1, 1] — use heatmap-ish color */
+  const t = Math.max(0, Math.min(1, (v + 1) / 2));
+  if (isLight()) {
+    /* indigo → light gray → amber */
+    if (t < 0.5) return mix('#312e81', '#cbd5e1', t*2);
+    return mix('#cbd5e1', '#b45309', (t-0.5)*2);
+  } else {
+    if (t < 0.5) return mix('#3730a3', '#475569', t*2);
+    return mix('#475569', '#d97706', (t-0.5)*2);
+  }
+}
+function mix(c1, c2, t) {
+  const p = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+  const a = p(c1), b = p(c2);
+  const r = (x,y) => Math.round(x + (y-x)*t).toString(16).padStart(2,'0');
+  return '#' + r(a[0],b[0]) + r(a[1],b[1]) + r(a[2],b[2]);
+}
+
+/* ── SEEDED RNG (deterministyczne wektory) ── */
+function seededRand(seed) {
+  let s = (seed >>> 0) || 1;
+  return function() {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return (s & 0x7fffffff) / 0x7fffffff;
+  };
+}
+
+/* Deterministyczny syntetyczny embedding o zadanej liczbie wymiarów. */
+function synthEmbedding(word, dims) {
+  const clusterSeeds = { food: 1, transport: 2, lodging: 3, wellness: 4 };
+  const wordSeed = (clusterSeeds[word.cluster] || 0) * 1000 + word.id.charCodeAt(0)*13 + word.id.charCodeAt(1)*7;
+  const rng = seededRand(wordSeed);
+  const out = [];
+  /* Realne wartości pierwszych cech */
+  out.push(word.food*2 - 1);
+  out.push(word.transport*2 - 1);
+  out.push(word.wellness*2 - 1);
+  out.push(word.lodging*2 - 1);
+  if (word.time !== undefined) out.push(word.time*2 - 1);
+  /* Reszta: bazowy "centroid" klastra + szum */
+  const clusterDir = { food: 0.4, transport: -0.3, lodging: 0.1, wellness: -0.2 }[word.cluster] || 0;
+  for (let i = out.length; i < dims; i++) {
+    const v = clusterDir * 0.7 + (rng() - 0.5) * 1.4;
+    out.push(Math.max(-1, Math.min(1, v)));
+  }
+  return out;
+}
+
+/* Wektor zapytania — podobny do śniadania */
+function queryVec(dims) {
+  const fake = { id: 'query', cluster: 'food', food: 0.86, transport: 0.04, wellness: 0.08, lodging: 0.12, time: 0.22 };
+  return synthEmbedding(fake, dims);
+}
+
+/* Cosine similarity */
+function cosineSim(a, b) {
+  let dot = 0, na = 0, nb = 0;
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) { dot += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i]; }
+  if (na === 0 || nb === 0) return 0;
+  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+}
+
+/* ════════════════════════════════════════════════════════════
+   ── SCENE BUILDERS ──
+   ════════════════════════════════════════════════════════════ */
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(SVG_NS, tag);
+  if (attrs) Object.keys(attrs).forEach(k => el.setAttribute(k, attrs[k]));
+  return el;
+}
+function clearChildren(el) { while (el && el.firstChild) el.removeChild(el.firstChild); }
+
+/* SCENE 1: 1D number line — labels stacked in rows to avoid overlap */
+function build1D() {
+  const g = document.getElementById('s1-dots'); if (!g) return;
+  clearChildren(g);
+  const x0 = 80, x1 = 860, y = 300;
+  const sorted = WORDS.slice().sort((a, b) => a.food - b.food);
+  const placed = [];
+  const MIN_DX = 70;
+  const ROWS = [-30, -54, -78, -102, -126, +30, +54, +78];
+  sorted.forEach(w => {
+    const cx = x0 + w.food * (x1 - x0);
+    let row = 0;
+    while (row < ROWS.length && placed.some(p => p.row === row && Math.abs(p.x - cx) < MIN_DX)) row++;
+    if (row >= ROWS.length) row = ROWS.length - 1;
+    placed.push({ x: cx, row });
+    const col = clusterCol(w.cluster);
+    g.appendChild(svgEl('circle', { cx, cy: y, r: 16, fill: col.dot, opacity: 0.18 }));
+    g.appendChild(svgEl('circle', { cx, cy: y, r: 7,  fill: col.dot, opacity: 0.95 }));
+    const labelY = y + ROWS[row];
+    /* connector line when label is far from dot */
+    if (Math.abs(ROWS[row]) > 38) {
+      const lineY1 = ROWS[row] < 0 ? y - 8 : y + 8;
+      const lineY2 = ROWS[row] < 0 ? labelY + 6 : labelY - 14;
+      g.appendChild(svgEl('line', { x1: cx, y1: lineY1, x2: cx, y2: lineY2, stroke: col.dot, 'stroke-width': 0.6, opacity: 0.35 }));
+    }
+    const lbl = svgEl('text', { x: cx, y: labelY, 'text-anchor':'middle', 'font-size': 11, 'font-family':'Inter,sans-serif', fill: col.dot, 'font-weight':'600' });
+    lbl.textContent = w.label;
+    g.appendChild(lbl);
+    const val = svgEl('text', { x: cx, y: labelY + 12, 'text-anchor':'middle', 'font-size': 9, 'font-family':'JetBrains Mono,monospace', fill: descColor(), opacity: 0.7 });
+    val.textContent = w.food.toFixed(2);
+    g.appendChild(val);
+  });
+}
+
+/* SCENE 2: 2D scatter */
+function build2D() {
+  const g = document.getElementById('s2-dots'); if (!g) return;
+  clearChildren(g);
+  const x0 = 200, x1 = 780, y0 = 90, y1 = 470;
+  WORDS.forEach(w => {
+    const cx = x0 + w.food * (x1 - x0);
+    const cy = y1 - w.transport * (y1 - y0);
+    const col = clusterCol(w.cluster);
+    g.appendChild(svgEl('circle', { cx, cy, r: 16, fill: col.dot, opacity: 0.16 }));
+    g.appendChild(svgEl('circle', { cx, cy, r: 7,  fill: col.dot, opacity: 0.95 }));
+    const lbl = svgEl('text', { x: cx + 10, y: cy + 4, 'font-size': 11, 'font-family':'Inter,sans-serif', fill: col.dot, 'font-weight':'600' });
+    lbl.textContent = w.label;
+    g.appendChild(lbl);
+  });
+}
+
+/* SCENE 3: 3D isometric */
+function isoProject(x, y, z) {
+  /* origin = (470, 340), unit = 216 — jeszcze większy scene 3 */
+  const u = 216, ox = 470, oy = 340;
+  const ix = ox + (x - y) * u * 0.866;
+  const iy = oy + (x + y) * u * 0.5 - z * u;
+  return { x: ix, y: iy };
+}
+function build3D() {
+  const g = document.getElementById('s3-dots'); if (!g) return;
+  clearChildren(g);
+  /* tick lines on iso axes */
+  for (let t = 0.25; t <= 1.01; t += 0.25) {
+    const tickXf = isoProject(t, 0, 0), tickYf = isoProject(0, t, 0), tickZf = isoProject(0, 0, t);
+    g.appendChild(svgEl('circle', { cx: tickXf.x, cy: tickXf.y, r: 2, fill: '#fb923c', opacity: 0.5 }));
+    g.appendChild(svgEl('circle', { cx: tickYf.x, cy: tickYf.y, r: 2, fill: '#fb923c', opacity: 0.5 }));
+    g.appendChild(svgEl('circle', { cx: tickZf.x, cy: tickZf.y, r: 2, fill: '#22d3ee', opacity: 0.5 }));
+  }
+  /* dots */
+  const sorted = WORDS.slice().sort((a, b) => (a.wellness + a.food + a.transport) - (b.wellness + b.food + b.transport));
+  sorted.forEach(w => {
+    const p = isoProject(w.food, w.transport, w.wellness);
+    const col = clusterCol(w.cluster);
+    /* vertical drop line to base plane (z=0) */
+    const base = isoProject(w.food, w.transport, 0);
+    g.appendChild(svgEl('line', { x1: p.x, y1: p.y, x2: base.x, y2: base.y, stroke: col.dot, 'stroke-width': 0.6, 'stroke-dasharray': '2,2', opacity: 0.35 }));
+    g.appendChild(svgEl('circle', { cx: base.x, cy: base.y, r: 2.5, fill: col.dot, opacity: 0.4 }));
+    g.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: 16, fill: col.dot, opacity: 0.16 }));
+    g.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: 7,  fill: col.dot, opacity: 0.95 }));
+    const lbl = svgEl('text', { x: p.x + 10, y: p.y - 6, 'font-size': 10, 'font-family':'Inter,sans-serif', fill: col.dot, 'font-weight':'600' });
+    lbl.textContent = w.label;
+    g.appendChild(lbl);
+  });
+}
+
+/* SCENE 4: 10D bar chart */
+function build10D() {
+  const headers = document.getElementById('s4-headers');
+  const rows    = document.getElementById('s4-rows');
+  if (!headers || !rows) return;
+  clearChildren(headers); clearChildren(rows);
+  const labelW = 110, cellW = 60, cellGap = 4, startX = 200, headerY = 100;
+  /* headers — auto-fit długich napisów do szerokości komórki */
+  features10().forEach((f, i) => {
+    const x = startX + i * (cellW + cellGap) + cellW/2;
+    const attrs = { x, y: headerY, 'text-anchor':'middle', 'font-size': 9, 'font-family':'JetBrains Mono,monospace', fill: descColor() };
+    /* dla dłuższych słów: dociśnij textLength żeby zmieściły się w komórce */
+    if (f.length > 7) {
+      attrs.textLength = cellW - 4;
+      attrs.lengthAdjust = 'spacingAndGlyphs';
+    }
+    const t = svgEl('text', attrs);
+    t.textContent = f;
+    headers.appendChild(t);
+  });
+  /* select 4 words for compact comparison */
+  const picks = ['sniadanie','obiad','samochod','spa'].map(id => WORDS.find(w => w.id === id));
+  picks.forEach((w, ri) => {
+    const y = headerY + 28 + ri * 84;
+    const col = clusterCol(w.cluster);
+    /* word label */
+    const lbl = svgEl('text', { x: 90, y: y + 38, 'text-anchor':'end', 'font-size': 12, 'font-family':'Inter,sans-serif', fill: col.dot, 'font-weight':'700' });
+    lbl.textContent = w.label;
+    rows.appendChild(lbl);
+    /* values: 10 cells */
+    const vec = synthEmbedding(w, 10);
+    vec.forEach((v, i) => {
+      const x = startX + i * (cellW + cellGap);
+      const h = Math.abs(v) * 30 + 2;
+      const ypos = (v >= 0) ? (y + 38 - h) : (y + 38);
+      rows.appendChild(svgEl('rect', { x, y: ypos, width: cellW, height: h, fill: v >= 0 ? col.dot : '#94a3b8', opacity: 0.7 }));
+      const vt = svgEl('text', { x: x + cellW/2, y: y + 80, 'text-anchor':'middle', 'font-size': 8, 'font-family':'JetBrains Mono,monospace', fill: descColor(), opacity: 0.6 });
+      vt.textContent = v.toFixed(2);
+      rows.appendChild(vt);
+    });
+    /* baseline */
+    rows.appendChild(svgEl('line', { x1: startX, y1: y + 38, x2: startX + 10*(cellW+cellGap)-cellGap, y2: y + 38, stroke: descColor(), 'stroke-width': 0.6, opacity: 0.4 }));
+  });
+}
+
+/* SCENE 5: 100D bars */
+function buildND(targetId, dims) {
+  const root = document.getElementById(targetId); if (!root) return;
+  clearChildren(root);
+  const picks = ['sniadanie','obiad','samochod','spa'].map(id => WORDS.find(w => w.id === id));
+  const startX = 110, endX = 870, startY = 100, rowH = 84, barAreaH = 40;
+  const totalW = endX - startX;
+  const cellW = totalW / dims;
+  picks.forEach((w, ri) => {
+    const y = startY + ri * rowH;
+    const col = clusterCol(w.cluster);
+    const lbl = svgEl('text', { x: 95, y: y + barAreaH/2 + 4, 'text-anchor':'end', 'font-size': 12, 'font-family':'Inter,sans-serif', fill: col.dot, 'font-weight':'700' });
+    lbl.textContent = w.label;
+    root.appendChild(lbl);
+    const vec = synthEmbedding(w, dims);
+    vec.forEach((v, i) => {
+      const x = startX + i * cellW;
+      const h = Math.abs(v) * (barAreaH - 2) + 1;
+      const ypos = (v >= 0) ? (y + barAreaH/2 - h) : (y + barAreaH/2);
+      root.appendChild(svgEl('rect', { x, y: ypos, width: Math.max(0.6, cellW - 0.4), height: h, fill: v >= 0 ? col.dot : '#94a3b8', opacity: 0.85 }));
+    });
+    root.appendChild(svgEl('line', { x1: startX, y1: y + barAreaH/2, x2: endX, y2: y + barAreaH/2, stroke: descColor(), 'stroke-width': 0.5, opacity: 0.4 }));
+    /* annotation */
+    const ann = svgEl('text', { x: endX + 6, y: y + barAreaH/2 + 4, 'font-size': 9, 'font-family':'JetBrains Mono,monospace', fill: descColor(), opacity: 0.7 });
+    ann.textContent = dims + 'D';
+    root.appendChild(ann);
+  });
+}
+
+/* SCENE 6: 768D heatmap rows */
+function buildHeatmapRows(targetId, dims, opts) {
+  const root = document.getElementById(targetId); if (!root) return;
+  clearChildren(root);
+  opts = opts || {};
+  const picks = (opts.picks || ['sniadanie','samochod','spa']).map(id => WORDS.find(w => w.id === id));
+  const startX = 110, endX = 830, startY = opts.startY || 170, rowH = opts.rowH || 70, cellH = opts.cellH || 30;
+  const totalW = endX - startX;
+  const cellW = totalW / dims;
+  picks.forEach((w, ri) => {
+    const y = startY + ri * rowH;
+    const col = clusterCol(w.cluster);
+    const lbl = svgEl('text', { x: 95, y: y + cellH/2 + 4, 'text-anchor':'end', 'font-size': 11, 'font-family':'Inter,sans-serif', fill: col.dot, 'font-weight':'700' });
+    lbl.textContent = w.label;
+    root.appendChild(lbl);
+    const vec = synthEmbedding(w, dims);
+    vec.forEach((v, i) => {
+      const x = startX + i * cellW;
+      root.appendChild(svgEl('rect', { x, y, width: Math.max(0.8, cellW), height: cellH, fill: valueColorPos(v), opacity: 0.95 }));
+    });
+    /* frame */
+    root.appendChild(svgEl('rect', { x: startX, y, width: totalW, height: cellH, fill: 'none', stroke: bgCardBorder(), 'stroke-width': 0.5, opacity: 0.6 }));
+    const ann = svgEl('text', { x: endX + 6, y: y + cellH/2 + 4, 'font-size': 9, 'font-family':'JetBrains Mono,monospace', fill: descColor(), opacity: 0.7 });
+    ann.textContent = dims + 'D';
+    root.appendChild(ann);
+  });
+}
+
+/* SCENE 7: Matryoshka — three rows of varying length */
+function buildMatryoshka() {
+  /* show one word (śniadanie) at 768D, 256D, 128D */
+  const w = WORDS[0];
+  function paint(targetId, dims, y) {
+    const root = document.getElementById(targetId); if (!root) return;
+    clearChildren(root);
+    const startX = 120, endX = 820, cellH = 28;
+    const totalW = endX - startX;
+    const cellW = totalW / dims;
+    const vec = synthEmbedding(w, dims);
+    vec.forEach((v, i) => {
+      const x = startX + i * cellW;
+      root.appendChild(svgEl('rect', { x, y, width: Math.max(0.8, cellW), height: cellH, fill: valueColorPos(v), opacity: 0.95 }));
+    });
+    root.appendChild(svgEl('rect', { x: startX, y, width: totalW, height: cellH, fill: 'none', stroke: bgCardBorder(), 'stroke-width': 0.5 }));
+  }
+  paint('s7-row-768', 768, 124);
+  paint('s7-row-256', 256, 196);
+  paint('s7-row-128', 128, 268);
+}
+
+/* SCENE 8: BigQuery table rows */
+function buildTable() {
+  const root = document.getElementById('s8-rows'); if (!root) return;
+  clearChildren(root);
+  const rowH = 68, startY = 138;
+  TABLE_ROWS.forEach((row, i) => {
+    const y = startY + i * rowH;
+    /* separator */
+    if (i > 0) root.appendChild(svgEl('line', { x1: 60, y1: y - 6, x2: 880, y2: y - 6, stroke: bgCardBorder(), 'stroke-width': 0.4, opacity: 0.6 }));
+    /* id */
+    const idText = svgEl('text', { x: 86, y: y + 18, 'font-size': 10, 'font-family':'JetBrains Mono,monospace', fill: '#60a5fa' });
+    idText.textContent = row.id;
+    root.appendChild(idText);
+    /* content */
+    const c = svgEl('text', { x: 160, y: y + 18, 'font-size': 11, 'font-family':'Inter,sans-serif', fill: txtColor() });
+    c.textContent = '"' + (row.content[lang] || row.content.pl) + '"';
+    root.appendChild(c);
+    /* embedding mini-heatmap (compressed 768D → 128 cells visible) */
+    const word = WORDS.find(w => w.cluster === row.cluster) || WORDS[0];
+    const vec = synthEmbedding(word, 128);
+    const startX = 160, endX = 850, eY = y + 26, cellH = 14;
+    const cellW = (endX - startX) / vec.length;
+    vec.forEach((v, j) => {
+      root.appendChild(svgEl('rect', { x: startX + j * cellW, y: eY, width: Math.max(0.8, cellW), height: cellH, fill: valueColorPos(v), opacity: 0.9 }));
+    });
+    root.appendChild(svgEl('rect', { x: startX, y: eY, width: endX - startX, height: cellH, fill: 'none', stroke: bgCardBorder(), 'stroke-width': 0.5, opacity: 0.6 }));
+    const ann = svgEl('text', { x: 855, y: eY + 11, 'font-size': 8, 'font-family':'JetBrains Mono,monospace', fill: descColor() });
+    ann.textContent = '[…] 768';
+    root.appendChild(ann);
+  });
+}
+
+/* SCENE 9: cosine similarity results */
+function buildSimilarity() {
+  /* update query text */
+  const qt = document.getElementById('s9-query-text');
+  if (qt) qt.textContent = QUERY_TEXT[lang] || QUERY_TEXT.pl;
+  /* query embedding mini-heatmap */
+  const qe = document.getElementById('s9-query-emb');
+  if (qe) {
+    clearChildren(qe);
+    const dims = 96, cellW = 280/dims, cellH = 14;
+    const vec = queryVec(dims);
+    vec.forEach((v, i) => qe.appendChild(svgEl('rect', { x: i * cellW, y: 0, width: Math.max(0.8, cellW), height: cellH, fill: valueColorPos(v), opacity: 0.95 })));
+    qe.appendChild(svgEl('rect', { x: 0, y: 0, width: 280, height: cellH, fill: 'none', stroke: '#f59e0b', 'stroke-width': 0.6, opacity: 0.7 }));
+  }
+  /* results — sorted by similarity */
+  const root = document.getElementById('s9-results'); if (!root) return;
+  clearChildren(root);
+  const sorted = TABLE_ROWS.slice().sort((a, b) => b.sim - a.sim);
+  const startY = 210, rowH = 56, barX = 540, barEnd = 860, barW = barEnd - barX;
+  sorted.forEach((row, i) => {
+    const y = startY + i * rowH;
+    const isTop = i < 3;
+    const fillC = isTop ? clusterCol(row.cluster).dot : descColor();
+    /* row bg for top-3 */
+    if (isTop) {
+      root.appendChild(svgEl('rect', { x: 80, y: y - 12, width: 780, height: 42, rx: 5, fill: clusterCol(row.cluster).soft, opacity: 0.6 }));
+    }
+    /* rank */
+    const rk = svgEl('text', { x: 100, y: y + 14, 'font-size': 14, 'font-weight':'800', 'font-family':'Inter,sans-serif', fill: fillC });
+    rk.textContent = '#' + (i + 1);
+    root.appendChild(rk);
+    /* id */
+    const idText = svgEl('text', { x: 140, y: y + 14, 'font-size': 10, 'font-family':'JetBrains Mono,monospace', fill: '#60a5fa' });
+    idText.textContent = row.id;
+    root.appendChild(idText);
+    /* content */
+    const c = svgEl('text', { x: 220, y: y + 14, 'font-size': 11, 'font-family':'Inter,sans-serif', fill: isTop ? txtColor() : descColor(), 'font-weight': isTop ? '600' : '400' });
+    const txt = '"' + (row.content[lang] || row.content.pl) + '"';
+    c.textContent = txt.length > 36 ? txt.slice(0, 35) + '…"' : txt;
+    root.appendChild(c);
+    /* bar bg */
+    root.appendChild(svgEl('rect', { x: barX, y: y, width: barW, height: 14, rx: 3, fill: bgCardBorder(), opacity: 0.3 }));
+    /* bar fill */
+    root.appendChild(svgEl('rect', { x: barX, y: y, width: barW * row.sim, height: 14, rx: 3, fill: fillC, opacity: 0.9 }));
+    /* score */
+    const sc = svgEl('text', { x: barEnd + 8, y: y + 11, 'font-size': 11, 'font-family':'JetBrains Mono,monospace', fill: fillC, 'font-weight':'700' });
+    sc.textContent = row.sim.toFixed(2);
+    root.appendChild(sc);
+  });
+}
+
+/* Build all scene visualizations (called on init + on theme toggle) */
+function buildAllScenes() {
+  build1D();
+  build2D();
+  build3D();
+  build10D();
+  buildND('s5-rows', 100);
+  buildHeatmapRows('s6-rows', 768, { startY: 180, rowH: 70, cellH: 30 });
+  buildMatryoshka();
+  buildTable();
+  buildSimilarity();
+}
+
+/* ════════════════════════════════════════════════════════════
+   ── NAV / SCENE SWAP ──
+   ════════════════════════════════════════════════════════════ */
+
+let cur = 0;
+let stepTimers = [];
+function clearStepAnim() {
+  stepTimers.forEach(t => clearTimeout(t));
+  stepTimers = [];
+  const veil = document.getElementById('step-veil');
+  if (veil) { veil.style.transition = 'none'; veil.style.opacity = '0'; }
+  const sc = document.getElementById('step-scan');
+  if (sc) { sc.style.transition = 'none'; sc.style.opacity = '0'; sc.style.top = '-6px'; }
+  const sc2 = document.getElementById('step-scan2');
+  if (sc2) { sc2.style.transition = 'none'; sc2.style.opacity = '0'; sc2.style.top = '-6px'; }
+}
+
+function showOnlyScene(idx) {
+  document.querySelectorAll('.scene').forEach(g => g.style.display = 'none');
+  const target = document.getElementById('scene-' + idx);
+  if (target) target.style.display = '';
+}
+
+function playStepTransition(newIdx) {
+  const veil = document.getElementById('step-veil');
+  const sc   = document.getElementById('step-scan');
+  const sc2  = document.getElementById('step-scan2');
+  const da   = document.querySelector('.diagram-area');
+  const daH  = da ? da.offsetHeight : 600;
+  const T = (ms, fn) => { const t = setTimeout(fn, ms); stepTimers.push(t); };
+
+  /* veil in */
+  void veil.offsetWidth;
+  veil.style.transition = 'opacity .35s';
+  veil.style.opacity = '0.78';
+
+  /* swap scene + fade veil out */
+  T(350, () => {
+    showOnlyScene(newIdx);
+    render();
+    veil.style.transition = 'opacity 1.2s';
+    veil.style.opacity = '0';
+    sc.style.transition = 'none';
+    sc.style.top = '-6px';
+    sc.style.opacity = '1';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      sc.style.transition = 'top .65s cubic-bezier(.4,0,.6,1)';
+      sc.style.top = `${daH + 8}px`;
+    }));
+  });
+
+  /* gentle "scan-reveal" on new scene contents */
+  T(600, () => {
+    const scene = document.getElementById('scene-' + newIdx);
+    if (scene) {
+      scene.classList.remove('scan-reveal');
+      void scene.offsetWidth;
+      scene.classList.add('scan-reveal');
+      setTimeout(() => scene.classList.remove('scan-reveal'), 1400);
+    }
+  });
+
+  /* scan beam fades */
+  T(1100, () => { sc.style.transition = 'opacity .3s'; sc.style.opacity = '0'; });
+
+  /* slow decorative second scan */
+  T(7000, () => {
+    sc2.style.transition = 'none'; sc2.style.top = '-6px'; sc2.style.opacity = '0.75';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      sc2.style.transition = 'top 4s linear';
+      sc2.style.top = `${daH + 8}px`;
+    }));
+  });
+  T(11200, () => { sc2.style.transition = 'opacity .5s'; sc2.style.opacity = '0'; });
+  T(18000, () => {
+    sc.style.transition  = 'none'; sc.style.top = '-6px'; sc.style.opacity = '0';
+    sc2.style.transition = 'none'; sc2.style.top = '-6px'; sc2.style.opacity = '0';
+  });
+}
+
+function go(dir) {
+  if (dir === -1 && cur === 0) {
+    clearStepAnim();
+    const sp = document.getElementById('splash');
+    if (sp) { sp.style.transition = ''; sp.style.opacity = '1'; sp.style.display = 'flex'; }
+    return;
+  }
+  const next = cur + dir;
+  if (next < 0 || next >= STEPS.length) return;
+  clearStepAnim();
+  cur = next;
+  playStepTransition(STEPS[cur].scene);
+}
+
+/* ── RENDER ── */
+function render() {
+  const s = STEPS[cur];
+  /* progress */
+  document.querySelectorAll('.ps').forEach((el,i) => {
+    el.className = 'ps' + (i < cur ? ' done' : i === cur ? ' current' : '');
+  });
+  document.getElementById('btn-prev').disabled = false;
+  document.getElementById('btn-next').disabled = cur === STEPS.length - 1;
+  document.getElementById('nav-cur').textContent = cur;
+
+  /* panel */
+  const _ui = getLangPack() && getLangPack().ui;
+  const _stepOfTpl = (_ui && _ui.panel && _ui.panel.stepOf) || 'Krok {n} z {total}';
+  document.getElementById('p-step').textContent = _stepOfTpl.replace('{n}', cur).replace('{total}', STEPS.length - 1);
+  document.getElementById('p-title').textContent = s.title || '';
+  document.getElementById('p-desc').textContent  = s.desc  || '';
+
+  /* print caption */
+  const _pcStep  = document.getElementById('pc-step');
+  const _pcTitle = document.getElementById('pc-title');
+  const _pcBrand = document.getElementById('pc-brand');
+  if (_pcStep)  _pcStep.textContent  = _stepOfTpl.replace('{n}', cur).replace('{total}', STEPS.length - 1);
+  if (_pcTitle) _pcTitle.textContent = s.title || '';
+  if (_pcBrand && _ui && _ui.print) _pcBrand.textContent = _ui.print.brand;
+  const _btnPrint = document.getElementById('btn-print');
+  if (_btnPrint && _ui && _ui.print) _btnPrint.title = _ui.print.btnTitle;
+
+  /* active list */
+  const listEl = document.getElementById('p-active');
+  if (listEl) {
+    listEl.innerHTML = '';
+    (s.items || []).forEach((item, i) => {
+      const d = document.createElement('div');
+      d.className = 'al-item';
+      d.innerHTML = `<div class="al-dot"></div><span>${item}</span>`;
+      listEl.appendChild(d);
+      setTimeout(() => d.classList.add('show'), i * 60);
+    });
+  }
+
+  /* show correct scene (static fallback when not via transition) */
+  showOnlyScene(s.scene);
+}
+
+/* ── Apply language ── */
+function applyLang() {
+  const lp = getLangPack();
+  if (!lp) return;
+  const ui = lp.ui;
+  STEPS = buildSteps();
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+  document.getElementById('splash-title').textContent = ui.splash.title;
+  document.getElementById('splash-sub').textContent   = ui.splash.sub;
+  document.getElementById('splash-hint').textContent  = ui.splash.hint;
+  const badgeEl = document.getElementById('hdr-badge');
+  if (badgeEl) badgeEl.textContent = ui.badge;
+  document.getElementById('btn-prev').textContent = ui.nav.prev;
+  document.getElementById('btn-next').textContent = ui.nav.next;
+  const navCtr = document.getElementById('nav-ctr');
+  if (navCtr) {
+    const curVal = document.getElementById('nav-cur') ? document.getElementById('nav-cur').textContent : cur;
+    navCtr.innerHTML = `${ui.nav.step} <strong id="nav-cur">${curVal}</strong> / <strong>${STEPS_BASE.length - 1}</strong>`;
+  }
+  const altEl = document.getElementById('active-list-title');
+  if (altEl) altEl.textContent = ui.panel.activeComponents;
+  document.querySelectorAll('.ps').forEach((el, i) => {
+    el.title = ui.progressDot.replace('{i}', i);
+  });
+  applySvgLabels();
+  buildAllScenes();
+  render();
+}
+
+/* ── BOOT ANIMATION ── */
+function runBootAnimation() {
+  const boot = document.getElementById('boot');
+  const line = document.getElementById('boot-line');
+  const scan = document.getElementById('boot-scan');
+  line.style.cssText = `transform:scaleY(0.005); background:${bootLineStart()}; transition:none;`;
+  scan.style.cssText = `top:-6px; opacity:0; transition:none; background:${scanColor()}; box-shadow:${scanShadow()};`;
+  const SCAN_MS = 4000, CRT_MS = 1600;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    line.style.transition = 'transform .48s cubic-bezier(.15,.5,.1,1)';
+    line.style.transform  = 'scaleY(1)';
+    setTimeout(() => { line.style.transition = 'background .22s'; line.style.background = bootBgColor(); }, 380);
+    setTimeout(() => {
+      scan.style.opacity = '1';
+      scan.style.transition = `top ${SCAN_MS/1000}s linear`;
+      scan.style.top = '110vh';
+    }, CRT_MS);
+    /* gentle scene-0 reveal flash mid-scan */
+    setTimeout(() => {
+      const scene = document.getElementById('scene-0');
+      if (scene) { scene.classList.add('scan-reveal'); setTimeout(() => scene.classList.remove('scan-reveal'), 1400); }
+    }, CRT_MS + SCAN_MS * 0.25);
+    const FADE_AT = CRT_MS + SCAN_MS;
+    setTimeout(() => {
+      scan.style.transition = 'opacity .4s'; scan.style.opacity = '0';
+      boot.style.transition = 'opacity 2s ease-in'; boot.style.opacity = '0';
+    }, FADE_AT);
+    setTimeout(() => { boot.style.cssText = 'display:none;'; }, FADE_AT + 2400);
+  }));
+}
+
+/* ── SPLASH ── */
+function dismissSplash() {
+  const sp = document.getElementById('splash');
+  if (!sp || sp.style.display === 'none') return;
+  const boot = document.getElementById('boot');
+  boot.style.cssText = 'display:block; opacity:1;';
+  document.getElementById('boot-line').style.cssText =
+    `transform:scaleY(1); background:${bootBgColor()}; transition:none;`;
+  document.getElementById('boot-scan').style.cssText =
+    `top:-6px; opacity:0; transition:none; background:${scanColor()}; box-shadow:${scanShadow()};`;
+  sp.style.opacity = '0';
+  setTimeout(() => { sp.style.display = 'none'; runBootAnimation(); }, 700);
+}
+
+/* ── INIT ── */
+(function init() {
+  const isL = isLight();
+  const tg1 = document.getElementById('theme-toggle-splash');
+  const tg2 = document.getElementById('theme-toggle-hdr');
+  if (tg1) tg1.setAttribute('aria-checked', isL ? 'true' : 'false');
+  if (tg2) tg2.setAttribute('aria-checked', isL ? 'true' : 'false');
+  applyDynamicScanColors();
+
+  /* progress dots */
+  const wrap = document.getElementById('psteps');
+  STEPS_BASE.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'ps';
+    const _dotTpl = (getLangPack() && getLangPack().ui && getLangPack().ui.progressDot) || 'Krok {i}';
+    d.title = _dotTpl.replace('{i}', i);
+    d.onclick = () => { clearStepAnim(); cur = i; render(); };
+    wrap.appendChild(d);
+  });
+
+  /* keyboard */
+  document.addEventListener('keydown', e => {
+    const sp = document.getElementById('splash');
+    const splashOn = sp && sp.style.display !== 'none';
+    if (splashOn) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); dismissSplash(); }
+      if (e.key === 't' || e.key === 'T') { e.preventDefault(); toggleTheme(); }
+      return;
+    }
+    if (e.key === '?')                  { e.preventDefault(); toggleShortcuts(); return; }
+    if (e.key === 'p' || e.key === 'P') { e.preventDefault(); doPrint();         return; }
+    if (e.key === 't' || e.key === 'T') { e.preventDefault(); toggleTheme();     return; }
+    if (e.key === 'Escape')             { if (shortcutsOpen) { closeShortcuts(); return; } }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(-1);
+    const digit = parseInt(e.key, 10);
+    if (!isNaN(digit) && digit >= 0 && digit < STEPS.length) {
+      e.preventDefault();
+      clearStepAnim();
+      cur = digit;
+      showOnlyScene(STEPS[cur].scene);
+      render();
+    }
+  });
+
+  /* inject SVG keyframes */
+  const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+  style.textContent = `@keyframes pulseGlow { 0%,100%{opacity:.7} 50%{opacity:1} }`;
+  const svg = document.getElementById('emb');
+  if (svg) svg.prepend(style);
+
+  applyLang();
+})();
+
+/* ── STAR FIELD ── */
+(function initStars() {
+  const canvas = document.getElementById('stars-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let stars = [], nebulae = [];
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    buildStars();
+  }
+  function buildStars() {
+    const W = canvas.width, H = canvas.height;
+    stars = Array.from({ length: 260 }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.1 + 0.15,
+      a: Math.random() * 0.65 + 0.12,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.004 + Math.random() * 0.009,
+      drift: (Math.random() - 0.5) * 0.035
+    }));
+    nebulae = Array.from({ length: 12 }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.8 + 1.0,
+      a: Math.random() * 0.55 + 0.25,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.002 + Math.random() * 0.005,
+      drift: (Math.random() - 0.5) * 0.018
+    }));
+  }
+  function draw(t) {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    const light = document.documentElement.getAttribute('data-theme') === 'light';
+    const aMul  = light ? 0.35 : 1.0;
+    stars.forEach(s => {
+      s.phase += s.speed; s.x += s.drift;
+      if (s.x < 0) s.x = W; if (s.x > W) s.x = 0;
+      const a = s.a * (0.45 + 0.55 * Math.sin(s.phase)) * aMul;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = light ? `rgba(100,116,139,${a})` : `rgba(190,215,255,${a})`;
+      ctx.fill();
+    });
+    nebulae.forEach(s => {
+      s.phase += s.speed; s.x += s.drift;
+      if (s.x < 0) s.x = W; if (s.x > W) s.x = 0;
+      const a = s.a * (0.5 + 0.5 * Math.sin(s.phase)) * aMul;
+      const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 5);
+      if (light) {
+        g.addColorStop(0,   `rgba(71,85,105,${a})`);
+        g.addColorStop(0.4, `rgba(100,116,139,${a * .35})`);
+        g.addColorStop(1,   'rgba(255,255,255,0)');
+      } else {
+        g.addColorStop(0,   `rgba(200,225,255,${a})`);
+        g.addColorStop(0.4, `rgba(140,185,255,${a * .35})`);
+        g.addColorStop(1,   'rgba(0,0,0,0)');
+      }
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r * 5, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
